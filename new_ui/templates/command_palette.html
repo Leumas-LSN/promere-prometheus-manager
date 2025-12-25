@@ -1,0 +1,163 @@
+<!-- Command Palette -->
+<div x-data="commandPalette()" 
+     @keydown.window.prevent.ctrl.j="open()" 
+     @keydown.window.prevent.cmd.j="open()"
+     class="relative z-[200]" 
+     style="display: none;" 
+     x-show="isOpen">
+     
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" @click="close()" x-show="isOpen" x-transition.opacity></div>
+
+    <div class="fixed inset-0 overflow-y-auto p-4 sm:p-6 md:p-20 z-[201]" x-show="isOpen" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95">
+        
+        <div class="mx-auto max-w-xl transform rounded-xl bg-white dark:bg-zinc-900 shadow-2xl ring-1 ring-black ring-opacity-5 transition-all overflow-hidden border border-gray-200 dark:border-gray-800" @click.outside="close()">
+            <div class="relative">
+                <svg class="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input type="text" 
+                       x-ref="searchInput" 
+                       x-model="query" 
+                       @keydown.arrow-down.prevent="selectNext()" 
+                       @keydown.arrow-up.prevent="selectPrev()" 
+                       @keydown.enter.prevent="selectAction()" 
+                       @keydown.escape="close()"
+                       class="h-12 w-full border-0 bg-transparent pl-11 pr-4 text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-0 sm:text-sm focus:outline-none" 
+                       placeholder="Search commands or navigate..." 
+                       role="combobox" 
+                       aria-expanded="false" 
+                       aria-controls="options">
+            </div>
+
+            <!-- Results -->
+            <ul class="max-h-80 scroll-py-2 overflow-y-auto pb-2 border-t border-gray-100 dark:border-gray-800" x-show="filteredActions.length > 0">
+                <li class="p-2">
+                    <ul class="text-sm text-gray-700 dark:text-gray-200">
+                        <template x-for="(action, index) in filteredActions" :key="index">
+                            <li @click="selectAction(index)" 
+                                @mouseenter="selectedIndex = index"
+                                :class="{'bg-orange-600 text-white': selectedIndex === index, 'text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50': selectedIndex !== index}"
+                                class="group flex cursor-pointer select-none items-center rounded-md px-3 py-2 transition-colors">
+                                
+                                <div class="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" :class="{'border-transparent bg-transparent': selectedIndex === index}">
+                                     <span x-html="action.icon" :class="{'text-white': selectedIndex === index, 'text-gray-500': selectedIndex !== index}"></span>
+                                </div>
+                                
+                                <div class="ml-3 flex-auto truncate">
+                                    <span x-text="action.title" class="font-medium"></span>
+                                    <span class="ml-2 truncate text-xs opacity-60" x-text="action.category"></span>
+                                </div>
+                                
+                                <span x-show="selectedIndex === index" class="ml-3 flex-none text-white opacity-60 text-xs">Enter</span>
+                            </li>
+                        </template>
+                    </ul>
+                </li>
+            </ul>
+
+            <!-- Empty State -->
+            <div class="py-14 px-6 text-center text-sm sm:px-14" x-show="query !== '' && filteredActions.length === 0">
+                <svg class="mx-auto h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <p class="mt-4 font-semibold text-gray-900 dark:text-white">No results found</p>
+                <p class="mt-2 text-gray-500">No command matching "<span x-text="query"></span>"</p>
+            </div>
+            
+            <!-- Footer -->
+            <div class="flex flex-wrap items-center bg-gray-50 dark:bg-gray-900/50 py-2.5 px-4 text-xs text-gray-700 dark:text-gray-400 border-t border-gray-100 dark:border-gray-800">
+                Type <kbd class="mx-1 flex h-5 w-5 items-center justify-center rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 font-mono font-semibold text-gray-900 dark:text-white sm:mx-2 text-[10px]">?</kbd> for help.
+                <span class="flex-grow"></span>
+                <span class="text-gray-400">Promere Command Palette</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function commandPalette() {
+        return {
+            isOpen: false,
+            query: '',
+            selectedIndex: 0,
+            
+            // Icons (SVG strings)
+            icons: {
+                nav: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>',
+                target: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>',
+                alert: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>',
+                topo: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>',
+                settings: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>',
+                team: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>',
+                logout: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>',
+                logs: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>'
+            },
+
+            // Define Actions
+            get actions() {
+                return [
+                    {% for item in nav_menu %}
+                    { 
+                        title: '{{ item.title }}', 
+                        category: '{{ item.category }}', 
+                        url: "{{ item.endpoint | safe_url }}", 
+                        icon: this.icons.{{ item.icon }} 
+                    },
+                    {% endfor %}
+                    
+                    // Special Items
+                    { title: 'System Settings', category: 'Settings', action: () => { window.dispatchEvent(new CustomEvent('open-settings-modal')); }, icon: this.icons.settings },
+                    { title: 'Logout', category: 'Account', url: "{{ 'logout' | safe_url }}", icon: this.icons.logout }
+                ];
+            },
+
+            get filteredActions() {
+                if (this.query === '') return this.actions;
+                const lowerQuery = this.query.toLowerCase();
+                return this.actions.filter(action => 
+                    action.title.toLowerCase().includes(lowerQuery) || 
+                    action.category.toLowerCase().includes(lowerQuery)
+                );
+            },
+
+            open() {
+                this.isOpen = true;
+                this.query = '';
+                this.selectedIndex = 0;
+                this.$nextTick(() => {
+                    this.$refs.searchInput.focus();
+                });
+            },
+
+            close() {
+                this.isOpen = false;
+            },
+
+            selectNext() {
+                if (this.selectedIndex < this.filteredActions.length - 1) {
+                    this.selectedIndex++;
+                    // Scroll into view if needed
+                }
+            },
+
+            selectPrev() {
+                if (this.selectedIndex > 0) {
+                    this.selectedIndex--;
+                }
+            },
+
+            selectAction(index) {
+                const idx = index !== undefined ? index : this.selectedIndex;
+                const action = this.filteredActions[idx];
+                if (action) {
+                    if (action.action) {
+                        action.action();
+                    } else if (action.url) {
+                        window.location.href = action.url;
+                    }
+                    this.close();
+                }
+            }
+        }
+    }
+</script>

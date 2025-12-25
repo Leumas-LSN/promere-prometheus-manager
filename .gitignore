@@ -1,0 +1,7 @@
+landing_page/
+monitoring/
+github-key.txt
+__pycache__/
+*.pyc
+.env
+.DS_Store

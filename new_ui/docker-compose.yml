@@ -1,0 +1,61 @@
+version: "3.8"
+
+# [MCP Context] Service Architecture
+# This file defines the "Promere" application container and its interactions
+# with the underlying monitoring infrastructure (Prometheus/Alertmanager).
+# It assumes a folder structure where '../monitoring' contains the actual config files.
+
+services:
+  # [MCP Service] Promere Central (The UI/API)
+  prototype:
+    build: .
+    container_name: prototype
+    ports:
+      - "8091:8091" # HTTPS access
+      - "8090:8090" # HTTP Redirector
+
+    # [MCP Volumes] Persistence & Integration
+    volumes:
+      # Code Hot-Reloading (Dev Mode)
+      - .:/app
+
+      # [MCP Security] SSL Certificates Persistence
+      # Certificates are generated once and persisted across container restarts
+      - ./certs:/app/certs
+
+      # [MCP Security] Configuration Files (passwords, API keys)
+      - ./config:/app/config
+
+      # [MCP Integration] Prometheus Targets
+      # Promere writes JSON files here. Prometheus reads them via file_sd_configs.
+      - ../monitoring/targets:/app/targets
+
+      # [MCP Integration] App State
+      # Stores user preferences and Prometheus API URL.
+      - ../monitoring/config/targetmanager.json:/app/config.json
+
+      # [MCP Integration] Prometheus Config (Read-Only)
+      # Promere reads this to discover "Jobs" and "DNS SD" configs.
+      - ../monitoring/config/prometheus.yml:/config/prometheus.yml:ro
+
+      # [MCP Integration] Alert Rules (Read/Write)
+      # Promere manages alerting rules here. Prometheus evaluates them.
+      - ../monitoring/rules:/app/rules
+
+      # [MCP Integration] Alertmanager Config (Read/Write)
+      # Promere manages receivers and routes here.
+      - ../monitoring/config/alertmanager:/config/alertmanager
+
+      # [MCP Integration] Logs & Dashboards
+      - ../monitoring/config/promere/activity_log.json:/app/activity_log.json
+      - ../monitoring/config/promere/dashboard_panels.json:/app/dashboard_panels.json
+    
+    # [MCP Env] Runtime Configuration
+    environment:
+      # Pointers to critical config files inside the container
+      - PROMETHEUS_YML_PATH=/config/prometheus.yml
+      - ALERTMANAGER_YML_PATH=/config/alertmanager/alertmanager.yml
+
+    env_file:
+      - .env # Loads secrets (ADMIN_PASS, SECRET_KEY, etc.)
+    restart: unless-stopped

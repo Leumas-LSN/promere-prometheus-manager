@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="fr" class="light" x-data="alertsApp()" x-cloak>
+<head>
+  <meta charset="UTF-8">
+  <title>Alerts - Promere</title>
+  <!-- [MCP Context] Role: Alert Rules Management -->
+  <!-- Interface for Creating, Editing, and Deleting Prometheus Alert Rules. -->
+  <!-- Features: Visual Query Builder, Natural Language Search, and Silences Management. -->
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/promere-logo.png') }}">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: { 50: '#fafafa', 100: '#f4f4f5', 200: '#e4e4e7', 300: '#d4d4d8', 400: '#a1a1aa', 500: '#71717a', 600: '#52525b', 700: '#3f3f46', 800: '#27272a', 900: '#18181b', 950: '#09090b' },
+            orange: { 50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 300: '#fdba74', 400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c', 800: '#9a3412', 900: '#7c2d12' }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="text-gray-900 dark:text-white">
+  <div class="grid-background-depth">
+    <div class="grid-layer-1"></div>
+    <div class="grid-layer-2"></div>
+    <div class="grid-layer-3"></div>
+  </div>
+
+  <!-- Sidebar -->
+  {% include 'sidebar_nav.html' %}
+
+  <!-- Main Content -->
+  <div class="min-h-screen transition-all duration-300 fade-in" :class="sidebarOpen ? 'lg:ml-64' : 'lg:ml-16'">
+    
+    <!-- Top Bar -->
+    <header class="sticky top-0 z-30 h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+      <div class="h-full px-6 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4 flex-1">
+          <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 -ml-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+          </button>
+          
+          <div class="relative flex-1 max-w-md">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <input type="text" x-model="search" placeholder="Search alerts..." class="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-3">
+          {% include 'header_user.html' %}
+        </div>
+      </div>
+    </header>
+
+    <!-- Flash Messages -->
+    <div class="fixed top-20 right-6 z-50 space-y-2 max-w-md">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)" class="flex items-start gap-3 p-4 bg-white dark:bg-gray-900 border rounded-xl shadow-lg {% if category == 'error' %}border-red-500{% elif category == 'success' %}border-green-500{% else %}border-gray-200 dark:border-gray-800{% endif %}">
+              <div class="flex-1 min-w-0"><p class="text-sm font-medium">{{ message }}</p></div>
+              <button @click="show = false" class="text-gray-400 hover:text-gray-600"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    <!-- Page Content -->
+    <main class="p-6">
+      
+      <!-- Header & Tabs -->
+      <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Alerts & Silences</h1>
+          <p class="text-gray-600 dark:text-gray-400 mt-1">Manage rules and silence noisy notifications</p>
+        </div>
+        
+        <div class="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+          <button @click="activeTab = 'rules'" :class="activeTab === 'rules' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'" class="px-4 py-2 text-sm font-medium rounded-md transition-all">Rules</button>
+          <button @click="activeTab = 'silences'" :class="activeTab === 'silences' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'" class="px-4 py-2 text-sm font-medium rounded-md transition-all">Silences</button>
+        </div>
+      </div>
+
+      <!-- RULES TAB -->
+      <div x-show="activeTab === 'rules'" x-transition>
+        <!-- Actions -->
+        <div class="mb-6 flex justify-between items-center">
+          <div></div>
+          <div class="flex gap-3">
+            <form method="POST" action="{{ url_for('reload_prometheus') }}" class="inline-block">
+              <input type="hidden" name="_csrf" value="{{ csrf }}">
+              <button type="submit" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                Reload Config
+              </button>
+            </form>
+            
+            {% if role != 'viewer' %}
+              <button @click="openModal()" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-sm">
+                Add Alert Rule
+              </button>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Rules Table -->
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-900/50 text-left font-semibold text-gray-500 dark:text-gray-400">
+              <tr>
+                <th class="px-6 py-3">State</th>
+                <th class="px-6 py-3">Alert Name</th>
+                <th class="px-6 py-3">Expression</th>
+                <th class="px-6 py-3">Duration</th>
+                <th class="px-6 py-3">Severity</th>
+                <th class="px-6 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+              <template x-for="rule in filteredRules" :key="rule.id">
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                  <td class="px-6 py-4">
+                    <div class="flex items-center gap-2">
+                      <template x-if="getRuleState(rule.name) === 'firing'">
+                        <span class="px-2 py-1 text-xs font-bold text-white bg-red-500 rounded animate-pulse">Firing</span>
+                      </template>
+                      <template x-if="getRuleState(rule.name) === 'pending'">
+                        <span class="px-2 py-1 text-xs font-bold text-white bg-yellow-500 rounded">Pending</span>
+                      </template>
+                      <template x-if="getRuleState(rule.name) === 'inactive'">
+                        <span class="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 dark:bg-green-900/30 dark:text-green-400 rounded">OK</span>
+                      </template>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="flex flex-col">
+                        <span class="font-medium" x-text="rule.name"></span>
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            <template x-for="loc in rule.locations" :key="loc">
+                                <span class="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded"
+                                  :class="loc === 'local' ? 'bg-gray-100 text-gray-600 dark:bg-gray-800' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'">
+                                  <span x-text="loc === 'local' ? 'Local' : 'Satellite'"></span>
+                                </span>
+                            </template>
+                        </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4"><code class="px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-gray-800 rounded text-orange-600 dark:text-orange-400 font-mono" x-text="rule.expr"></code></td>
+                  <td class="px-6 py-4 text-gray-500" x-text="rule.for"></td>
+                  <td class="px-6 py-4">
+                    <span class="px-2 py-1 text-xs font-medium rounded capitalize"
+                      :class="{
+                        'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400': rule.severity === 'critical',
+                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400': rule.severity === 'warning',
+                        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400': rule.severity === 'info'
+                      }" x-text="rule.severity || 'none'"></span>
+                  </td>
+                  <td class="px-6 py-4 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <button @click="openSilenceModal({matchers: [{name: 'alertname', value: rule.name}]})" class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded" title="Silence this alert">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+                      </button>
+                      <button @click="openModal(rule)" class="p-1.5 text-gray-600 hover:bg-gray-100 rounded" title="Edit">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                      </button>
+                      {% if role != 'viewer' %}
+                        <button @click="deleteRule(rule)" class="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Delete">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SILENCES TAB -->
+      <div x-show="activeTab === 'silences'" x-transition>
+        <div class="mb-6 flex justify-between items-center">
+          <p class="text-sm text-gray-600 dark:text-gray-400">Silenced notifications in Alertmanager</p>
+          {% if role != 'viewer' %}
+            <button @click="openSilenceModal()" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-all shadow-sm">
+              New Silence
+            </button>
+          {% endif %}
+        </div>
+
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-900/50 text-left font-semibold text-gray-500 dark:text-gray-400">
+              <tr>
+                <th class="px-6 py-3">State</th>
+                <th class="px-6 py-3">Matchers</th>
+                <th class="px-6 py-3">Comment</th>
+                <th class="px-6 py-3">Creator</th>
+                <th class="px-6 py-3">Ends</th>
+                <th class="px-6 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+              <template x-for="silence in silences" :key="silence.id">
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                  <td class="px-6 py-4">
+                    <span class="px-2 py-1 text-xs font-bold rounded"
+                      :class="silence.status.state === 'active' ? 'bg-green-100 text-green-800' : (silence.status.state === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800')">
+                      <span x-text="silence.status.state"></span>
+                    </span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="flex flex-wrap gap-1">
+                      <template x-for="m in silence.matchers" :key="m.name">
+                        <span class="px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                          <span class="font-medium" x-text="m.name"></span><span x-text="m.isRegex ? '=~' : '='"></span><span x-text="m.value"></span>
+                        </span>
+                      </template>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 text-gray-600 dark:text-gray-400 truncate max-w-xs" x-text="silence.comment"></td>
+                  <td class="px-6 py-4 text-gray-600 dark:text-gray-400" x-text="silence.createdBy"></td>
+                  <td class="px-6 py-4 text-gray-600 dark:text-gray-400" x-text="new Date(silence.endsAt).toLocaleString()"></td>
+                  <td class="px-6 py-4 text-right">
+                    {% if role != 'viewer' %}
+                      <button @click="expireSilence(silence.id)" class="px-3 py-1 text-xs font-medium text-red-600 border border-red-200 rounded hover:bg-red-50">Expire</button>
+                    {% endif %}
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="silences.length === 0">
+                <td colspan="6" class="p-8 text-center text-gray-500">No active silences.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Create/Edit Rule Modal -->
+  <!-- [MCP UI] This modal handles both CREATION and EDITION of alert rules. -->
+  <div x-show="modalOpen" @keydown.escape.window="modalOpen = false" class="fixed inset-0 z-[100]" style="display: none;">
+    <div @click="modalOpen = false" class="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
+    <div class="flex min-h-screen items-center justify-center p-4">
+      <div class="relative w-full max-w-3xl bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-xl max-h-[90vh] overflow-y-auto">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between sticky top-0 bg-white dark:bg-gray-900 z-10">
+          <h2 class="text-xl font-semibold" x-text="isEdit ? 'Edit Alert Rule' : 'Create Alert Rule'"></h2>
+          <button @click="modalOpen = false" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        </div>
+        
+        <form method="POST" action="{{ url_for('save_alert') }}" class="p-6 space-y-6" @submit="prepareSubmission">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <input type="hidden" name="original_id" x-model="form.original_id">
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-2">File Name</label>
+              <input type="text" name="file_name" x-model="form.file_name" list="filesList" required class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm">
+              <datalist id="filesList">{% for f in files %}<option value="{{ f }}"></option>{% endfor %}</datalist>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-2">Group Name</label>
+              <input type="text" name="group_name" x-model="form.group_name" required class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-4">
+            <div class="col-span-2">
+              <label class="block text-sm font-medium mb-2">Alert Name</label>
+              <input type="text" name="alert_name" x-model="form.alert_name" required class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-2">Duration</label>
+              <input type="text" name="duration" x-model="form.duration" placeholder="1m" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm">
+            </div>
+          </div>
+
+          <!-- Target Sites Selection -->
+          <div class="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-xl">
+            <label class="block text-sm font-bold mb-3 flex items-center gap-2">
+                <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Deploy to Sites
+            </label>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {% for loc in locations %}
+                <label class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:border-orange-500 transition-colors group">
+                    <input type="checkbox" name="locations" value="{{ loc.id }}" x-model="form.locations" class="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-semibold group-hover:text-orange-600 transition-colors">{{ loc.name }}</span>
+                        <span class="text-[10px] text-gray-400">{{ 'Local Server' if loc.id == 'local' else 'Remote Satellite' }}</span>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label class="block text-sm font-medium">PromQL Expression</label>
+              <div class="flex gap-2">
+                  <button type="button" @click="initBuilder()" class="text-xs px-2 py-1 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                    Visual Builder
+                  </button>
+                  <button type="button" @click="testQuery()" class="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Preview Query
+                  </button>
+              </div>
+            </div>
+            
+            <!-- [MCP UI] Visual Query Builder Panel -->
+            <div x-show="builderOpen" x-transition class="mb-3 p-4 bg-gray-50 dark:bg-gray-800 border border-indigo-100 dark:border-gray-700 rounded-lg">
+                <div class="grid grid-cols-1 gap-3 mb-3">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-medium text-gray-500">Metric</label>
+                            <button type="button" @click="toggleMagic()" class="text-xs text-orange-600 hover:text-orange-800 flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                <span class="font-semibold">Natural Search</span>
+                                <span class="px-1 py-0.5 text-[9px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded uppercase">Beta</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Magic Search Input -->
+                        <div x-show="magicOpen" x-transition class="mb-2 p-3 bg-orange-50 dark:bg-orange-900/10 rounded border border-orange-100 dark:border-orange-900/30">
+                            <div class="relative">
+                                <input type="text" x-ref="magicInput" x-model="magicQuery" @keydown.enter.prevent="searchMagic()" placeholder="e.g. 'cpu usage', 'memory free', 'http requests'..." class="w-full pl-8 pr-16 py-1.5 bg-white dark:bg-gray-900 border border-orange-200 dark:border-gray-700 rounded text-sm focus:ring-2 focus:ring-orange-400">
+                                <svg class="absolute left-2.5 top-2.5 w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                <button type="button" @click="searchMagic()" class="absolute right-1 top-1 px-2 py-0.5 bg-orange-600 text-white text-xs rounded hover:bg-orange-700">Find</button>
+                            </div>
+                            
+                            <!-- Results -->
+                            <div x-show="magicResults.length > 0 || magicLoading" class="mt-2 max-h-40 overflow-y-auto space-y-1">
+                                <div x-show="magicLoading" class="text-xs text-center text-gray-500 py-2">Searching metadata...</div>
+                                <template x-for="res in magicResults" :key="res.name">
+                                    <button type="button" @click="selectMagicMetric(res.name)" class="w-full text-left p-2 hover:bg-white dark:hover:bg-gray-700 rounded transition-colors group">
+                                        <div class="flex justify-between items-baseline">
+                                            <span class="text-sm font-medium text-orange-700 dark:text-orange-400 font-mono" x-text="res.name"></span>
+                                            <span class="text-[10px] uppercase text-gray-400 border border-gray-200 dark:border-gray-600 px-1 rounded" x-text="res.type"></span>
+                                        </div>
+                                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5 line-clamp-1" x-text="res.help"></div>
+                                    </button>
+                                </template>
+                                <div x-show="!magicLoading && magicResults.length === 0 && magicQuery.length > 2" class="text-xs text-center text-gray-500 py-1">
+                                    No matches found in descriptions.
+                                </div>
+                            </div>
+                        </div>
+
+                        <input type="text" list="metricsList" x-model="builderMetric" placeholder="Select metric..." class="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                        <datalist id="metricsList">
+                            <template x-for="m in availableMetrics" :key="m">
+                                <option :value="m"></option>
+                            </template>
+                        </datalist>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="flex justify-between items-center mb-1">
+                         <label class="block text-xs font-medium text-gray-500">Filters</label>
+                         <button type="button" @click="addBuilderFilter()" class="text-xs text-indigo-600 hover:text-indigo-800">+ Filter</button>
+                    </div>
+                    <div class="space-y-2">
+                        <template x-for="(f, idx) in builderFilters" :key="idx">
+                            <div class="flex gap-2">
+                                <input type="text" x-model="f.key" placeholder="Label" class="flex-1 px-2 py-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded text-xs">
+                                <span class="self-center text-gray-400">=</span>
+                                <input type="text" x-model="f.value" placeholder="Value" class="flex-1 px-2 py-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded text-xs">
+                                <button type="button" @click="removeBuilderFilter(idx)" class="text-red-400 hover:text-red-600">&times;</button>
+                            </div>
+                        </template>
+                        <div x-show="builderFilters.length === 0" class="text-xs text-gray-400 italic">No filters applied</div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Function (Optional)</label>
+                    <select x-model="builderFunc" class="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded text-sm">
+                        <option value="">None (Raw Value)</option>
+                        <option value="rate1m">Rate (1m) - Per Second</option>
+                        <option value="rate5m">Rate (5m) - Per Second</option>
+                        <option value="irate">Instant Rate (1m)</option>
+                        <option value="sum">Sum</option>
+                        <option value="avg">Average</option>
+                    </select>
+                </div>
+                
+                <div class="flex justify-end gap-2 mt-2">
+                    <button type="button" @click="builderOpen = false" class="px-3 py-1 text-xs text-gray-600 hover:text-gray-800">Cancel</button>
+                    <button type="button" @click="applyBuilder()" class="px-3 py-1 text-xs text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow-sm">Apply to Expression</button>
+                </div>
+            </div>
+
+            <textarea name="expr" x-model="form.expr" rows="3" required class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-mono" placeholder="up == 0"></textarea>
+            
+            <!-- Query Preview Result -->
+            <div x-show="previewResult" class="mt-2 p-3 bg-gray-100 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 text-xs">
+              <div class="flex justify-between items-start mb-1">
+                <span class="font-bold text-gray-700 dark:text-gray-300">Preview Result:</span>
+                <button type="button" @click="previewResult = null" class="text-gray-400 hover:text-gray-600">&times;</button>
+              </div>
+              <pre class="whitespace-pre-wrap font-mono text-gray-600 dark:text-gray-400" x-text="previewResult"></pre>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label class="block text-sm font-medium">Labels</label>
+              <button type="button" @click="addLabel()" class="text-xs text-orange-600 hover:text-orange-700">+ Add Label</button>
+            </div>
+            <div class="space-y-2">
+              <template x-for="(item, index) in form.labelsList" :key="index">
+                <div class="flex gap-2">
+                  <input type="text" x-model="item.key" placeholder="Key" class="flex-1 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm">
+                  <input type="text" x-model="item.value" placeholder="Value" class="flex-1 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm">
+                  <button type="button" @click="removeLabel(index)" class="text-red-500 hover:text-red-700">&times;</button>
+                </div>
+              </template>
+            </div>
+            <input type="hidden" name="labels_json" :value="JSON.stringify(convertListToDict(form.labelsList))">
+          </div>
+
+          <!-- Alert Content (Summary/Desc) -->
+          <div class="space-y-4 border-t border-gray-200 dark:border-gray-800 pt-4">
+            <h3 class="text-sm font-semibold">Alert Content</h3>
+            <div>
+              <label class="block text-sm font-medium mb-2">Summary</label>
+              <input type="text" x-model="form.summary" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-2">Description</label>
+              <textarea x-model="form.description" x-ref="descInput" rows="3" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm"></textarea>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button type="button" @click="insertVar('{{ '{{' }} $value {{ '}}' }}')" class="px-2 py-1 text-xs bg-orange-50 text-orange-600 rounded border border-orange-200">{{ '{{' }} $value {{ '}}' }}</button>
+                <button type="button" @click="insertVar('{{ '{{' }} $labels.instance {{ '}}' }}')" class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded border border-gray-200">{{ '{{' }} $labels.instance {{ '}}' }}</button>
+                <button type="button" @click="insertVar('{{ '{{' }} $labels.hostname {{ '}}' }}')" class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded border border-gray-200">{{ '{{' }} $labels.hostname {{ '}}' }}</button>
+                <button type="button" @click="insertVar('{{ '{{' }} $labels.job {{ '}}' }}')" class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded border border-gray-200">{{ '{{' }} $labels.job {{ '}}' }}</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Other Annotations -->
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label class="block text-sm font-medium">Other Annotations</label>
+              <button type="button" @click="addAnnotation()" class="text-xs text-orange-600 hover:text-orange-700">+ Add Custom</button>
+            </div>
+            <div class="space-y-2">
+              <template x-for="(item, index) in form.annotationsList" :key="index">
+                <div class="flex gap-2">
+                  <input type="text" x-model="item.key" placeholder="Key" class="w-1/3 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm">
+                  <textarea x-model="item.value" rows="1" placeholder="Value" class="flex-1 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm"></textarea>
+                  <button type="button" @click="removeAnnotation(index)" class="text-red-500 hover:text-red-700">&times;</button>
+                </div>
+              </template>
+            </div>
+            <input type="hidden" name="annotations_json" :value="JSON.stringify(getCombinedAnnotations())">
+          </div>
+
+          <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+            <button type="button" @click="modalOpen = false" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg hover:from-orange-600">Save Rule</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Silence Modal -->
+  <div x-show="silenceModalOpen" @keydown.escape.window="silenceModalOpen = false" class="fixed inset-0 z-[100]" style="display: none;">
+    <div @click="silenceModalOpen = false" class="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
+    <div class="flex min-h-screen items-center justify-center p-4">
+      <div class="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-xl">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+          <h2 class="text-xl font-semibold">Create Silence</h2>
+          <button @click="silenceModalOpen = false" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        </div>
+        
+        <form @submit.prevent="createSilence" class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">Matchers (Labels)</label>
+            <div class="space-y-2">
+              <template x-for="(m, index) in silenceForm.matchers" :key="index">
+                <div class="flex gap-2">
+                  <input type="text" x-model="m.name" placeholder="Name" class="w-1/3 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm">
+                  <select x-model="m.isRegex" class="w-20 px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm">
+                    <option :value="false">=</option>
+                    <option :value="true">=~</option>
+                  </select>
+                  <input type="text" x-model="m.value" placeholder="Value" class="flex-1 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm">
+                  <button type="button" @click="silenceForm.matchers.splice(index, 1)" class="text-red-500 hover:text-red-700">&times;</button>
+                </div>
+              </template>
+              <button type="button" @click="silenceForm.matchers.push({name:'', value:'', isRegex: false})" class="text-xs text-indigo-600">+ Add Matcher</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-2">Duration</label>
+            <div class="flex gap-2">
+              <input type="number" x-model="silenceForm.durationValue" class="w-24 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm">
+              <select x-model="silenceForm.durationUnit" class="px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm">
+                <option value="h">Hours</option>
+                <option value="d">Days</option>
+                <option value="m">Minutes</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-2">Creator</label>
+            <input type="text" x-model="silenceForm.createdBy" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-2">Comment</label>
+            <textarea x-model="silenceForm.comment" rows="2" placeholder="Maintenance reason..." class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm"></textarea>
+          </div>
+
+          <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+            <button type="button" @click="silenceModalOpen = false" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Create Silence</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {% include 'settings_modal.html' %}
+  {% include 'command_palette.html' %}
+
+  <script>
+    /**
+     * [MCP Logic] Alerts Management Component
+     * Handles: Rule CRUD, Silencing, Query Preview, and Visual Builder.
+     */
+    function alertsApp() {
+      return {
+        sidebarOpen: true,
+        darkMode: false,
+        modalOpen: false,
+        configModalOpen: false,
+        silenceModalOpen: false,
+        activeTab: 'rules',
+        search: '',
+        isEdit: false,
+        previewResult: null,
+        
+        // Injected data
+        rules: {{ rules|tojson }},
+        alertsStatus: {{ alerts_status|tojson }},
+        silences: [],
+        
+        // Builder State
+        builderOpen: false,
+        availableMetrics: [],
+        builderMetric: '',
+        builderFilters: [], // {key, value}
+        builderFunc: '', // rate, sum, avg...
+        
+        // Magic Search State
+        magicOpen: false,
+        magicQuery: '',
+        magicResults: [],
+        magicLoading: false,
+        
+        form: {
+          original_id: '',
+          file_name: 'promere_alerts.yml',
+          group_name: 'promere_rules',
+          alert_name: '',
+          expr: '',
+          duration: '1m',
+          summary: '',
+          description: '',
+          labelsList: [],
+          annotationsList: [],
+          locations: ['local'] // New field
+        },
+
+        silenceForm: {
+          matchers: [],
+          durationValue: 2,
+          durationUnit: 'h',
+          createdBy: '{{ current_user.username }}' || 'Promere User',
+          comment: ''
+        },
+        
+        init() {
+          const savedSidebar = localStorage.getItem('sidebarOpen');
+          if (savedSidebar !== null) this.sidebarOpen = savedSidebar === 'true';
+          this.$watch('sidebarOpen', val => localStorage.setItem('sidebarOpen', val));
+          this.darkMode = localStorage.getItem('theme') === 'dark';
+          this.updateTheme();
+          this.fetchSilences();
+        },
+        
+        async initBuilder() {
+            this.builderOpen = !this.builderOpen;
+            if (this.builderOpen && this.availableMetrics.length === 0) {
+                try {
+                    const res = await fetch('/api/prom/metrics');
+                    if (res.ok) {
+                        this.availableMetrics = await res.json();
+                    }
+                } catch(e) { console.error('Failed to load metrics', e); }
+            }
+        },
+        
+        addBuilderFilter() {
+            this.builderFilters.push({key: '', value: ''});
+        },
+        
+        removeBuilderFilter(index) {
+            this.builderFilters.splice(index, 1);
+        },
+        
+        toggleMagic() {
+            this.magicOpen = !this.magicOpen;
+            if (this.magicOpen) {
+                this.$nextTick(() => { this.$refs.magicInput.focus(); });
+            }
+        },
+
+        async searchMagic() {
+            if (this.magicQuery.length < 2) return;
+            this.magicLoading = true;
+            this.magicResults = [];
+            try {
+                const res = await fetch('/api/prom/search_metrics?q=' + encodeURIComponent(this.magicQuery));
+                if (res.ok) {
+                    this.magicResults = await res.json();
+                }
+            } catch(e) { console.error(e); }
+            this.magicLoading = false;
+        },
+
+        selectMagicMetric(metricName) {
+            this.builderMetric = metricName;
+            this.magicOpen = false;
+            this.magicQuery = '';
+            this.magicResults = [];
+        },
+        
+        applyBuilder() {
+            if (!this.builderMetric) return;
+            
+            let query = this.builderMetric;
+            
+            // Add filters
+            const filters = this.builderFilters.filter(f => f.key && f.value);
+            if (filters.length > 0) {
+                const fStr = filters.map(f => `${f.key}="${f.value}"`).join(',');
+                query += `{${fStr}}`;
+            }
+            
+            // Apply function
+            if (this.builderFunc) {
+                if (this.builderFunc === 'rate1m') {
+                    query = `rate(${query}[1m])`;
+                } else if (this.builderFunc === 'rate5m') {
+                    query = `rate(${query}[5m])`;
+                } else if (this.builderFunc === 'irate') {
+                    query = `irate(${query}[1m])`;
+                } else if (this.builderFunc === 'sum') {
+                    query = `sum(${query})`;
+                } else if (this.builderFunc === 'avg') {
+                    query = `avg(${query})`;
+                }
+            }
+            
+            this.form.expr = query;
+            this.builderOpen = false;
+        },
+
+        get filteredRules() {
+          if (!this.search) return this.rules;
+          const s = this.search.toLowerCase();
+          return this.rules.filter(r => r.name.toLowerCase().includes(s) || r.group.toLowerCase().includes(s));
+        },
+        
+        getRuleState(name) {
+          const statuses = this.alertsStatus[name];
+          if (!statuses || statuses.length === 0) return 'inactive';
+          if (statuses.includes('firing')) return 'firing';
+          if (statuses.includes('pending')) return 'pending';
+          return 'inactive';
+        },
+
+        async fetchSilences() {
+          try {
+            const res = await fetch('/api/silences');
+            if (res.ok) {
+              this.silences = await res.json();
+            }
+          } catch (e) { console.error(e); }
+        },
+
+        async createSilence() {
+          const now = new Date();
+          const end = new Date(now);
+          const mul = this.silenceForm.durationUnit === 'h' ? 3600000 : (this.silenceForm.durationUnit === 'd' ? 86400000 : 60000);
+          end.setTime(now.getTime() + (this.silenceForm.durationValue * mul));
+
+          const payload = {
+            matchers: this.silenceForm.matchers,
+            startsAt: now.toISOString(),
+            endsAt: end.toISOString(),
+            createdBy: this.silenceForm.createdBy,
+            comment: this.silenceForm.comment
+          };
+
+          try {
+            const res = await fetch('/api/silences', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+              this.silenceModalOpen = false;
+              this.fetchSilences();
+              alert('Silence created!');
+            } else {
+              const err = await res.json();
+              alert('Error: ' + err.error);
+            }
+          } catch (e) { alert('Error: ' + e); }
+        },
+
+        async expireSilence(id) {
+          if (!confirm('Expire this silence?')) return;
+          try {
+            const res = await fetch('/api/silence/' + id, {method: 'DELETE'});
+            if (res.ok) this.fetchSilences();
+            else alert('Failed to expire');
+          } catch (e) { console.error(e); }
+        },
+
+        openSilenceModal(defaults = null) {
+          if (defaults) {
+            this.silenceForm.matchers = defaults.matchers.map(m => ({name: m.name, value: m.value, isRegex: false}));
+            this.silenceForm.comment = "Silenced from Promere Alerts";
+          } else {
+            this.silenceForm.matchers = [{name: 'alertname', value: '', isRegex: false}];
+            this.silenceForm.comment = "";
+          }
+          this.silenceModalOpen = true;
+        },
+
+        async testQuery() {
+          if (!this.form.expr) return;
+          this.previewResult = "Loading...";
+          try {
+            const res = await fetch('/api/query_preview', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({expr: this.form.expr})
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+              const resType = data.data.resultType;
+              const count = data.data.result.length;
+              if (count === 0) {
+                this.previewResult = `Empty result (No metrics found for now).`;
+              } else {
+                const first = data.data.result[0];
+                let output = `Type: ${resType}\nFound ${count} series.\nFirst result:\n`;
+                output += `Metric: ${JSON.stringify(first.metric, null, 2)}\n`;
+                output += `Value: ${JSON.stringify(first.value || first.values)}`;
+                this.previewResult = output;
+              }
+            } else {
+              this.previewResult = "Error: " + (data.error || "Unknown error");
+            }
+          } catch (e) {
+            this.previewResult = "Network Error: " + e;
+          }
+        },
+        
+        openModal(rule = null) {
+          this.isEdit = !!rule;
+          this.previewResult = null;
+          if (rule) {
+            const ann = { ...rule.annotations };
+            const summary = ann.summary || '';
+            const description = ann.description || '';
+            delete ann.summary; delete ann.description;
+
+            this.form = {
+              original_id: rule.id,
+              file_name: rule.file,
+              group_name: rule.group,
+              alert_name: rule.name,
+              expr: rule.expr,
+              duration: rule.for,
+              summary: summary,
+              description: description,
+              labelsList: this.convertDictToList(rule.labels),
+              annotationsList: this.convertDictToList(ann),
+              locations: rule.locations || ['local']
+            };
+          } else {
+            this.form = {
+              original_id: '',
+              file_name: 'promere_alerts.yml',
+              group_name: 'promere_rules',
+              alert_name: '',
+              expr: '',
+              duration: '1m',
+              summary: '',
+              description: '',
+              labelsList: [{key: 'severity', value: 'warning'}],
+              annotationsList: [],
+              locations: ['local']
+            };
+          }
+          this.modalOpen = true;
+        },
+        
+        getCombinedAnnotations() {
+          const dict = this.convertListToDict(this.form.annotationsList);
+          if (this.form.summary) dict.summary = this.form.summary;
+          if (this.form.description) dict.description = this.form.description;
+          return dict;
+        },
+
+        insertVar(text) {
+          this.form.description += text;
+          this.$nextTick(() => { this.$refs.descInput.focus(); });
+        },
+        
+        deleteRule(rule) {
+          if (confirm(`Delete rule "${rule.name}"?`)) {
+            const form = document.createElement('form');
+            form.method = 'POST'; form.action = "{{ url_for('delete_alert') }}";
+            const csrf = document.createElement('input'); csrf.type = 'hidden'; csrf.name = '_csrf'; csrf.value = '{{ csrf }}'; form.appendChild(csrf);
+            const idInput = document.createElement('input'); idInput.type = 'hidden'; idInput.name = 'rule_id'; idInput.value = rule.id; form.appendChild(idInput);
+            document.body.appendChild(form); form.submit();
+          }
+        },
+        
+        convertDictToList(dict) { return Object.entries(dict || {}).map(([key, value]) => ({ key, value })); },
+        convertListToDict(list) { const dict = {}; list.forEach(item => { if (item.key) dict[item.key] = item.value; }); return dict; },
+        addLabel() { this.form.labelsList.push({key: '', value: ''}); },
+        removeLabel(index) { this.form.labelsList.splice(index, 1); },
+        addAnnotation() { this.form.annotationsList.push({key: '', value: ''}); },
+        removeAnnotation(index) { this.form.annotationsList.splice(index, 1); },
+        prepareSubmission() {},
+        
+        updateTheme() {
+          if (this.darkMode) { document.documentElement.classList.add('dark'); localStorage.setItem('theme', 'dark'); }
+          else { document.documentElement.classList.remove('dark'); localStorage.setItem('theme', 'light'); }
+        }
+      }
+    }
+  </script>
+</body>
+</html>

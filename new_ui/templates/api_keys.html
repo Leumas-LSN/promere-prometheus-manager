@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="fr" class="light" x-data="{ sidebarOpen: true, darkMode: false }" x-init="
+    sidebarOpen = localStorage.getItem('sidebarOpen') === 'true';
+    $watch('sidebarOpen', val => localStorage.setItem('sidebarOpen', val));
+    darkMode = localStorage.getItem('theme') === 'dark';
+    if(darkMode) document.documentElement.classList.add('dark');
+">
+<head>
+  <meta charset="UTF-8">
+  <title>API Keys - Promere</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/promere-logo.png') }}">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: { 50: '#fafafa', 100: '#f4f4f5', 200: '#e4e4e7', 300: '#d4d4d8', 400: '#a1a1aa', 500: '#71717a', 600: '#52525b', 700: '#3f3f46', 800: '#27272a', 900: '#18181b', 950: '#09090b' },
+            orange: { 50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 300: '#fdba74', 400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c', 800: '#9a3412', 900: '#7c2d12' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @font-face { font-family: 'Gotham'; src: url('https://cdn.jsdelivr.net/gh/critrace/gotham-font@main/GothamBoldItalic.ttf') format('truetype'); font-weight: bold; font-style: italic; }
+    * { font-family: 'Inter', sans-serif; }
+    .promere-logo-text { font-family: 'Gotham', sans-serif; font-weight: bold; font-style: italic; letter-spacing: -0.02em; }
+    [x-cloak] { display: none !important; }
+    
+    /* Animated Grid Background */
+    .grid-background-depth { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; background: #fafafa; }
+    .dark .grid-background-depth { background: #09090b; }
+    .grid-background-depth .grid-layer-1 { position: absolute; inset: 0; background-image: linear-gradient(rgba(113, 113, 122, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.03) 1px, transparent 1px); background-size: 100px 100px; animation: gridMove 60s linear infinite; }
+    .grid-background-depth::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(circle at 20% 50%, rgba(249, 115, 22, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(234, 88, 12, 0.03) 0%, transparent 50%); animation: glow 12s ease-in-out infinite alternate; pointer-events: none; }
+    .dark .grid-background-depth::after { background-image: radial-gradient(circle at 20% 50%, rgba(249, 115, 22, 0.06) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(234, 88, 12, 0.06) 0%, transparent 50%); }
+    @keyframes gridMove { 0% { transform: translate(0, 0); } 100% { transform: translate(50px, 50px); } }
+    @keyframes glow { 0% { opacity: 0.4; } 100% { opacity: 0.8; } }
+  </style>
+</head>
+
+<body class="text-gray-900 dark:text-white">
+  <div class="grid-background-depth"><div class="grid-layer-1"></div></div>
+
+  <!-- Sidebar -->
+  {% include 'sidebar_nav.html' %}
+
+  <!-- Main Content -->
+  <div class="min-h-screen transition-all duration-300" :class="sidebarOpen ? 'lg:ml-64' : 'lg:ml-16'">
+    
+    <!-- Top Bar -->
+    <header class="sticky top-0 z-30 h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+      <div class="h-full px-6 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4 flex-1">
+            <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-200">Settings / API Keys</h1>
+        </div>
+        <div class="flex items-center gap-3">
+          {% include 'header_user.html' %}
+        </div>
+      </div>
+    </header>
+
+    <main class="p-6 max-w-5xl mx-auto">
+      
+      <!-- New Key Success Message -->
+      {% with messages = get_flashed_messages(category_filter=["new_key_success"]) %}
+        {% if messages %}
+          <div class="mb-8 p-6 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl shadow-lg animate-bounce-in">
+             <div class="flex items-center gap-3 mb-2">
+                 <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                 <h3 class="text-lg font-bold text-green-800 dark:text-green-200">API Key Created Successfully!</h3>
+             </div>
+             <p class="text-sm text-green-700 dark:text-green-300 mb-4">Please copy this key now. For security reasons, <strong>it will not be shown again.</strong></p>
+             
+             {% for message in messages %}
+                <div class="relative group">
+                    <pre class="p-4 bg-white dark:bg-gray-900 border border-green-300 dark:border-green-700 rounded-lg font-mono text-lg text-center break-all select-all">{{ message.split(': ')[1] }}</pre>
+                </div>
+             {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <!-- Header -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 class="text-2xl font-bold">API Access Management</h2>
+          <p class="text-gray-500 dark:text-gray-400">Manage authentication keys for remote Satellites and Agents.</p>
+        </div>
+        <button onclick="document.getElementById('createModal').showModal()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-lg shadow-sm transition-colors flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            Generate New Key
+        </button>
+      </div>
+
+      <!-- Keys Table -->
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
+        <table class="w-full text-sm text-left">
+            <thead class="bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 font-semibold border-b border-gray-200 dark:border-gray-800">
+                <tr>
+                    <th class="px-6 py-4">Status</th>
+                    <th class="px-6 py-4">Name</th>
+                    <th class="px-6 py-4">Key Prefix</th>
+                    <th class="px-6 py-4">Created</th>
+                    <th class="px-6 py-4">Expires</th>
+                    <th class="px-6 py-4">Last Used</th>
+                    <th class="px-6 py-4 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+                {% for key in keys %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <td class="px-6 py-4">
+                        {% if key.status == 'active' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                Active
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                                Expired
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ key.name }}</td>
+                    <td class="px-6 py-4 font-mono text-gray-500">{{ key.prefix }}</td>
+                    <td class="px-6 py-4 text-gray-500">{{ key.created_at[:10] }}</td>
+                    <td class="px-6 py-4 text-gray-500">{{ key.expires_at[:10] if key.expires_at else 'Never' }}</td>
+                    <td class="px-6 py-4 text-gray-500">
+                        {% if key.last_used_at %}
+                            {{ key.last_used_at[:19].replace('T', ' ') }}
+                        {% else %}
+                            <span class="text-gray-400 italic">Never</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <form method="POST" action="{{ url_for('delete_api_key') }}" onsubmit="return confirm('Revoke this key? The agent will stop working immediately.');">
+                            <input type="hidden" name="_csrf" value="{{ csrf }}">
+                            <input type="hidden" name="key_id" value="{{ key.id }}">
+                            <button type="submit" class="text-red-600 hover:text-red-800 font-medium text-xs border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
+                                Revoke
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                        <svg class="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                        <p>No API Keys found.</p>
+                        <p class="text-sm mt-1">Create one to connect a remote Satellite.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <!-- Create Modal (Native Dialog) -->
+  <dialog id="createModal" class="p-0 rounded-xl shadow-2xl backdrop:bg-black/50 dark:bg-gray-900 dark:text-white border border-gray-200 dark:border-gray-800">
+    <div class="w-full max-w-md p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold">New API Key</h3>
+            <button onclick="document.getElementById('createModal').close()" class="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+        
+        <form method="POST" action="{{ url_for('create_api_key') }}">
+            <input type="hidden" name="_csrf" value="{{ csrf }}">
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Key Name (Identifier)</label>
+                <input type="text" name="name" placeholder="e.g. Paris Datacenter" required class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg">
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-1">Validity Period</label>
+                <select name="validity" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg">
+                    <option value="30">30 Days</option>
+                    <option value="90">90 Days</option>
+                    <option value="365" selected>1 Year</option>
+                    <option value="0">No Expiration (Careful!)</option>
+                </select>
+            </div>
+            
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('createModal').close()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">Generate Key</button>
+            </div>
+        </form>
+    </div>
+  </dialog>
+</body>
+</html>

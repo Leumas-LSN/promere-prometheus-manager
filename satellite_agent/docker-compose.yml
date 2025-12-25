@@ -1,0 +1,49 @@
+version: "3.8"
+
+# [MCP Context] Satellite Deployment
+# This stack runs on the REMOTE infrastructure (the "Satellite").
+# It connects back to the Central Promere instance.
+
+services:
+  # [MCP Service] The Agent
+  promere-agent:
+    build: .
+    container_name: promere_satellite_agent
+    restart: always
+    
+    # [MCP Configuration]
+    environment:
+      # Connectivity to Central
+      - CENTRAL_URL=http://host.docker.internal:8091 # Change to your public Central URL
+      - API_KEY=replace_with_key_from_central
+      - SYNC_INTERVAL=60 # Seconds between syncs
+      
+      # Sync Options
+      - SYNC_BASE_CONFIGS=false # Set to true to manage prometheus.yml/alertmanager.yml centrally
+      
+      # Local Paths (Inside container) - Must match Volumes below
+      - TARGETS_DIR=/etc/prometheus/targets
+      - RULES_DIR=/etc/prometheus/rules
+      - PROM_CONFIG_FILE=/etc/prometheus/prometheus.yml
+      - AM_CONFIG_FILE=/etc/alertmanager/alertmanager.yml
+      
+      # Local Service Credentials (Optional, if Basic Auth is on)
+      - PROMETHEUS_USER=
+      - PROMETHEUS_PASS=
+      - ALERTMANAGER_USER=
+      - ALERTMANAGER_PASS=
+      
+      # Service URLs (Local Network)
+      - PROMETHEUS_BASE_URL=http://prometheus:9090
+      - ALERTMANAGER_BASE_URL=http://alertmanager:9093
+
+    # [MCP Integration] Shared Volumes
+    # The agent MUST share volumes with the actual Prometheus/Alertmanager containers
+    # to be able to write the config files they read.
+    volumes:
+      # Example paths - Adjust to match your actual Prometheus deployment
+      - /path/to/your/prometheus/targets:/etc/prometheus/targets
+      - /path/to/your/prometheus/rules:/etc/prometheus/rules
+      # Only needed if SYNC_BASE_CONFIGS=true
+      #- /path/to/your/prometheus.yml:/etc/prometheus/prometheus.yml
+      #- /path/to/your/alertmanager.yml:/etc/alertmanager/alertmanager.yml

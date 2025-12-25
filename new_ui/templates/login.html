@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr" class="light" x-data="login()" x-cloak>
+<head>
+  <meta charset="UTF-8">
+  <title>Login - Promere</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/promere-logo.png') }}">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: { 50: '#fafafa', 100: '#f4f4f5', 200: '#e4e4e7', 300: '#d4d4d8', 400: '#a1a1aa', 500: '#71717a', 600: '#52525b', 700: '#3f3f46', 800: '#27272a', 900: '#18181b', 950: '#09090b' },
+            orange: { 50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 300: '#fdba74', 400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c', 800: '#9a3412', 900: '#7c2d12' }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    
+    /* Gotham Bold Italic */
+    @font-face {
+      font-family: 'Gotham';
+      src: url('https://cdn.jsdelivr.net/gh/critrace/gotham-font@main/GothamBoldItalic.ttf') format('truetype');
+      font-weight: bold;
+      font-style: italic;
+    }
+    
+    * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: -0.011em; }
+    
+    .promere-logo-text {
+      font-family: 'Gotham', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: bold;
+      font-style: italic;
+      letter-spacing: -0.02em;
+    }
+    
+    [x-cloak] { display: none !important; }
+
+    /* Animated Grid Background */
+    .grid-background-depth {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      z-index: -1;
+      overflow: hidden;
+      background: #fafafa;
+    }
+    .dark .grid-background-depth {
+      background: #09090b;
+    }
+
+    .grid-background-depth .grid-layer-1 {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(113, 113, 122, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.03) 1px, transparent 1px);
+      background-size: 100px 100px;
+      animation: gridMove 60s linear infinite;
+    }
+
+    .grid-background-depth .grid-layer-2 {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(113, 113, 122, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.02) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: gridMove 45s linear infinite reverse;
+    }
+
+    .grid-background-depth .grid-layer-3 {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(113, 113, 122, 0.01) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.01) 1px, transparent 1px);
+      background-size: 25px 25px;
+      animation: gridMove 30s linear infinite;
+    }
+
+    .grid-background-depth::after {
+      content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 50%, rgba(249, 115, 22, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(234, 88, 12, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(251, 146, 60, 0.02) 0%, transparent 50%);
+      animation: glow 12s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    .dark .grid-background-depth::after {
+      background-image: 
+        radial-gradient(circle at 20% 50%, rgba(249, 115, 22, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(234, 88, 12, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(251, 146, 60, 0.04) 0%, transparent 50%);
+    }
+
+    @keyframes gridMove {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(50px, 50px); }
+    }
+
+    @keyframes glow {
+      0% { opacity: 0.4; }
+      100% { opacity: 0.8; }
+    }
+
+    /* Page Transition */
+    .fade-in-up {
+      animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    @keyframes fadeInUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body class="text-gray-900 dark:text-white min-h-screen flex items-center justify-center p-6">
+  <div class="grid-background-depth">
+    <div class="grid-layer-1"></div>
+    <div class="grid-layer-2"></div>
+    <div class="grid-layer-3"></div>
+  </div>
+
+  <div class="w-full max-w-md bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-xl overflow-hidden fade-in-up">
+    <div class="p-8">
+      
+      <!-- Logo -->
+      <div class="flex flex-col items-center justify-center mb-8">
+        <img src="{{ url_for('static', filename='img/promere-logo.png') }}" alt="Promere" class="h-16 w-auto mb-3">
+        <span class="text-2xl font-bold promere-logo-text">PROMERE</span>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Prometheus Management Interface</p>
+      </div>
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="mb-6 p-4 rounded-lg flex items-start gap-3 {% if category == 'error' %}bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 text-red-900 dark:text-red-200{% else %}bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 text-green-900 dark:text-green-200{% endif %}">
+              <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {% if category == 'error' %}
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                {% else %}
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                {% endif %}
+              </svg>
+              <span class="text-sm font-medium">{{ message }}</span>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('login') }}" class="space-y-5">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        
+        <div>
+          <label for="username" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Username</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
+              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+              </svg>
+            </div>
+            <input type="text" name="username" id="username" class="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full pl-10 p-2.5" placeholder="admin" required autofocus>
+          </div>
+        </div>
+        
+        <div>
+          <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
+              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+              </svg>
+            </div>
+            <input type="password" name="password" id="password" placeholder="••••••••" class="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full pl-10 p-2.5" required>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 focus:ring-4 focus:outline-none focus:ring-orange-300 dark:focus:ring-orange-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-all shadow-md">
+          Sign In
+        </button>
+      </form>
+    </div>
+    
+    <div class="px-8 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-800 flex justify-center">
+      <p class="text-xs text-gray-500 dark:text-gray-400">
+        Default credentials: admin / password
+      </p>
+    </div>
+  </div>
+
+  <script>
+    function login() {
+      return {
+        darkMode: false,
+        init() {
+          this.darkMode = localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (this.darkMode) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        }
+      }
+    }
+  </script>
+
+</body>
+</html>

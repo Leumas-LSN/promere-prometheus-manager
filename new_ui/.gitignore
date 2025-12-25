@@ -1,0 +1,64 @@
+# --- SECRETS & ENVIRONMENT ---
+.env
+.env.*
+*.env
+
+# --- CONFIGURATION & CREDENTIALS ---
+# Ignore all JSON in config/ except defaults if needed (we ignore strict credentials here)
+config/api_keys.json
+config/password_hashes.json
+config/remote/
+# Prevent upload of the main config if it contains secrets, 
+# though usually we want the structure. 
+# Let's ignore the runtime dynamic configs:
+config.json
+config/config.json
+
+# --- SSL / SECURITY ---
+certs/
+ssl/
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+
+# --- DATA / STATE ---
+# Runtime databases or JSON state files
+activity_log.json
+dashboard_panels.json
+topology_layout.json
+users.json
+targets/
+rules/remote/
+
+# --- PYTHON ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# --- LOGS ---
+*.log
+logs/
+
+# --- BACKUPS ---
+backups/
+*.bak
+*.backup
+*.swp
+*.swo
+*~
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

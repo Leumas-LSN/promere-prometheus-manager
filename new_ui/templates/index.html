@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark" x-data="targetsApp()" x-cloak>
+<head>
+  <meta charset="UTF-8">
+  <title>Targets - Promere</title>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/promere-logo.png') }}">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <style>
+    [x-cloak] { display: none !important; }
+    /* Custom Scrollbar */
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #18181b; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+    /* Animated Grid Background (from Dashboard) */
+    .grid-background-depth {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; overflow: hidden;
+      background: #09090b;
+      pointer-events: none;
+    }
+
+    .grid-background-depth .grid-layer-1 {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(113, 113, 122, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.03) 1px, transparent 1px);
+      background-size: 100px 100px;
+      animation: gridMove 60s linear infinite;
+    }
+
+    .grid-background-depth .grid-layer-2 {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(113, 113, 122, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.02) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: gridMove 45s linear infinite reverse;
+    }
+
+    .grid-background-depth .grid-layer-3 {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(113, 113, 122, 0.01) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.01) 1px, transparent 1px);
+      background-size: 25px 25px;
+      animation: gridMove 30s linear infinite;
+    }
+
+    .grid-background-depth::after {
+      content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 50%, rgba(249, 115, 22, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(234, 88, 12, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(251, 146, 60, 0.04) 0%, transparent 50%);
+      animation: glow 12s ease-in-out infinite alternate;
+    }
+
+    @keyframes gridMove {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(50px, 50px); }
+    }
+
+    @keyframes glow {
+      0% { opacity: 0.4; }
+      100% { opacity: 0.8; }
+    }
+  </style>
+</head>
+
+<body class="text-zinc-200 bg-zinc-950 font-sans antialiased selection:bg-orange-500/30">
+  
+  <!-- Global Background Effects -->
+  <div class="grid-background-depth">
+    <div class="grid-layer-1"></div>
+    <div class="grid-layer-2"></div>
+    <div class="grid-layer-3"></div>
+  </div>
+
+  <!-- Sidebar -->
+  {% include 'sidebar_nav.html' %}
+
+  <!-- Main Content -->
+  <div class="relative z-10 min-h-screen transition-all duration-300 pl-0" :class="sidebarOpen ? 'lg:ml-64' : 'lg:ml-16'">
+    
+    <!-- Top Bar -->
+    <header class="sticky top-0 z-30 h-16 bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800/50 flex items-center justify-between px-6">
+      <!-- Left: Mobile Toggle & Search -->
+      <div class="flex items-center gap-4 flex-1">
+        <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 -ml-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+
+        <div class="relative w-full max-w-md group">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i data-lucide="search" class="w-4 h-4 text-zinc-500 group-focus-within:text-orange-500 transition-colors"></i>
+          </div>
+          <input type="text" x-model="search" placeholder="Search targets (IP, Name, Labels)..." 
+                 class="block w-full pl-10 pr-3 py-2 border border-zinc-800 rounded-lg leading-5 bg-zinc-900/50 text-zinc-300 placeholder-zinc-500 focus:outline-none focus:bg-zinc-900 focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 sm:text-sm transition-all">
+          <!-- Keyboard Shortcut Hint -->
+          <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+            <span class="text-zinc-600 text-xs border border-zinc-800 rounded px-1.5 py-0.5">/</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Right: User Menu -->
+      <div class="flex items-center gap-4">
+        {% include 'header_user.html' %}
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <main class="p-6 max-w-[1600px] mx-auto">
+      
+      <!-- Page Header -->
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+        <div>
+            <div class="flex items-center gap-2 mb-2 text-xs font-semibold tracking-wider text-orange-500 uppercase">
+                <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+                Inventory
+            </div>
+            <h1 class="text-3xl font-bold text-white tracking-tight">Targets Inventory</h1>
+            <p class="text-zinc-400 mt-1 text-sm">Manage, monitor, and configure Prometheus scrape targets across your infrastructure.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            {% if role != 'viewer' %}
+            <button @click="addTargetOpen = true" class="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-sm font-medium transition-all shadow-lg shadow-orange-900/20 hover:shadow-orange-900/40 active:scale-95">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Add Target</span>
+            </button>
+            {% endif %}
+            <a href="{{ url_for('export_targets') }}" class="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 hover:border-zinc-700 rounded-lg text-sm font-medium transition-all active:scale-95">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span>Export</span>
+            </a>
+        </div>
+      </div>
+
+      <!-- Toolbar & Filters -->
+      <div class="flex flex-col sm:flex-row gap-4 items-center justify-between mb-6">
+        
+        <!-- Status Filter Tabs -->
+        <div class="flex p-1 bg-zinc-900/80 border border-zinc-800 rounded-lg">
+            <button @click="filterStatus = 'all'" 
+                    :class="filterStatus === 'all' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'" 
+                    class="px-4 py-1.5 rounded-md text-xs font-medium transition-all">
+                All
+            </button>
+            <button @click="filterStatus = 'up'" 
+                    :class="filterStatus === 'up' ? 'bg-zinc-800 text-green-400 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'" 
+                    class="px-4 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> UP
+            </button>
+            <button @click="filterStatus = 'down'" 
+                    :class="filterStatus === 'down' ? 'bg-zinc-800 text-red-400 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'" 
+                    class="px-4 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> DOWN
+            </button>
+        </div>
+
+        <!-- Meta Info -->
+        <div class="flex items-center gap-4 text-xs text-zinc-500 font-mono">
+            <span class="flex items-center gap-1.5">
+                <i data-lucide="refresh-cw" class="w-3 h-3"></i> Auto-refresh: 10s
+            </span>
+            <span class="hidden sm:inline text-zinc-700">|</span>
+            <span>Total: <span class="text-zinc-300" x-text="targets.length"></span></span>
+        </div>
+      </div>
+
+      <!-- MAIN TABLE CARD -->
+      <div class="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl relative">
+        <!-- Top Gradient Highlight -->
+        <div class="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent"></div>
+
+        <form id="saveAllForm" method="POST" action="{{ url_for('save_all_targets') }}">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          
+          <!-- Table Header -->
+          <div class="grid grid-cols-12 gap-4 px-6 py-3.5 border-b border-zinc-800 bg-zinc-900/50 text-[11px] font-bold uppercase tracking-wider text-zinc-500 rounded-t-xl">
+            <div class="col-span-1 text-center flex justify-center items-center">
+                <input type="checkbox" @change="toggleAllTargets($event)" class="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-orange-600 focus:ring-offset-zinc-950 focus:ring-orange-500/50 cursor-pointer">
+            </div>
+            <div class="col-span-4 md:col-span-3 cursor-pointer hover:text-white transition-colors flex items-center gap-2 group" @click="sortBy('target')">
+                <span>Endpoint</span>
+                <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+            </div>
+            <div class="col-span-2 text-center">Status</div>
+            <div class="col-span-3 md:col-span-3">Tags & Labels</div>
+            <div class="col-span-2 hidden md:block">Last Scrape</div>
+            <div class="col-span-1 text-right">Action</div>
+          </div>
+
+          <!-- Table Body -->
+          <div class="divide-y divide-zinc-800/50">
+            <template x-for="(target, index) in paginatedTargets" :key="target.target + target.location_id">
+                <div class="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-zinc-900/60 transition-all duration-200 group relative">
+                    
+                    <!-- Selection -->
+                    <div class="col-span-1 flex justify-center">
+                        <input type="checkbox" :value="target.target" x-model="selectedTargets" class="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-orange-600 focus:ring-offset-zinc-950 focus:ring-orange-500/50 cursor-pointer">
+                    </div>
+
+                    <!-- Endpoint Info -->
+                    <div class="col-span-4 md:col-span-3 flex items-center gap-4 min-w-0">
+                        <!-- Icon Box -->
+                        <div class="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 group-hover:border-zinc-700 group-hover:shadow-lg transition-all">
+                            <i data-lucide="server" class="w-5 h-5 text-orange-500" x-show="!target.target.includes(':5432')"></i>
+                            <i data-lucide="database" class="w-5 h-5 text-blue-500" x-show="target.target.includes(':5432')"></i>
+                        </div>
+                        
+                        <div class="flex flex-col min-w-0">
+                            <div class="text-sm font-medium text-zinc-200 group-hover:text-white truncate font-mono tracking-tight" x-text="target.target"></div>
+                            
+                            <!-- Location Badges -->
+                            <div class="flex flex-wrap items-center gap-1.5 mt-1">
+                                <template x-if="target.locations && target.locations.length > 0">
+                                    <template x-for="loc in target.locations" :key="loc.id">
+                                        <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-zinc-800 bg-zinc-900/50">
+                                            <span class="w-1.5 h-1.5 rounded-full" :class="loc.id === 'local' ? 'bg-zinc-500' : 'bg-blue-500'"></span>
+                                            <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider" x-text="loc.name"></span>
+                                        </div>
+                                    </template>
+                                </template>
+                                <template x-if="!target.locations || target.locations.length === 0">
+                                    <div class="flex items-center gap-1">
+                                        <span class="w-1.5 h-1.5 rounded-full" :class="target.location_id === 'local' ? 'bg-zinc-500' : 'bg-blue-500'"></span>
+                                        <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" x-text="target.location_name || 'Local'"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status Pill -->
+                    <div class="col-span-2 flex justify-center">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border transition-all shadow-sm"
+                              :class="target.health === 'up' 
+                                ? 'bg-green-500/10 text-green-400 border-green-500/20 shadow-green-900/10' 
+                                : 'bg-red-500/10 text-red-400 border-red-500/20 shadow-red-900/10'">
+                            <span class="relative flex h-2 w-2">
+                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" :class="target.health === 'up' ? 'bg-green-400' : 'bg-red-400'"></span>
+                              <span class="relative inline-flex rounded-full h-2 w-2" :class="target.health === 'up' ? 'bg-green-500' : 'bg-red-500'"></span>
+                            </span>
+                            <span x-text="target.health === 'up' ? 'ONLINE' : 'OFFLINE'"></span>
+                        </div>
+                    </div>
+
+                    <!-- Labels -->
+                    <div class="col-span-3 md:col-span-3 flex flex-wrap gap-2 items-center">
+                        <!-- Job Label -->
+                        <div class="flex items-center" x-show="target.jobs && target.jobs.length">
+                            <template x-for="job in target.jobs" :key="job">
+                                <span class="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 text-[10px] font-medium border border-zinc-700 mr-1" x-text="job"></span>
+                            </template>
+                        </div>
+                        
+                        <!-- Other Labels -->
+                        <template x-for="(val, key) in target.labels" :key="key">
+                            <span class="px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 text-[10px] border border-zinc-800 font-mono group-hover:border-zinc-700 transition-colors">
+                                <span class="text-zinc-500" x-text="key"></span>=<span class="text-zinc-300" x-text="val"></span>
+                            </span>
+                        </template>
+                        <span x-show="!target.jobs?.length && Object.keys(target.labels).length === 0" class="text-zinc-700 text-xs italic">—</span>
+                    </div>
+
+                    <!-- Last Scrape -->
+                    <div class="col-span-2 hidden md:block">
+                         <div class="text-xs font-mono font-medium" :class="target.scrapeError ? 'text-red-400' : 'text-zinc-400'">
+                             <span x-text="target.lastScrapeRelative || 'Never'"></span>
+                         </div>
+                         <div class="text-[10px] text-zinc-600 mt-0.5 font-mono flex items-center gap-1" x-show="target.lastScrapeDuration">
+                             <i data-lucide="timer" class="w-3 h-3"></i>
+                             <span x-text="(target.lastScrapeDuration * 1000).toFixed(1) + 'ms'"></span>
+                         </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="col-span-1 text-right">
+                        <div x-data="{ open: false }" class="relative inline-block text-left">
+                            <button @click.stop="open = !open" @click.outside="open = false" type="button" class="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors group">
+                                <i data-lucide="pencil" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+                            </button>
+                            
+                            <!-- Dropdown -->
+                            <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="absolute right-0 mt-2 w-48 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl z-50 overflow-hidden ring-1 ring-black ring-opacity-5">
+                                <div class="py-1">
+                                    <button type="button" @click="editTarget(target); open = false" class="group flex w-full items-center px-4 py-2.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors">
+                                        <i data-lucide="pencil" class="mr-3 h-4 w-4 text-zinc-500 group-hover:text-orange-500"></i>
+                                        Edit Configuration
+                                    </button>
+                                    <a :href="'http://' + target.target" target="_blank" class="group flex w-full items-center px-4 py-2.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors">
+                                        <i data-lucide="external-link" class="mr-3 h-4 w-4 text-zinc-500 group-hover:text-blue-500"></i>
+                                        Open Endpoint
+                                    </a>
+                                    {% if role != 'viewer' %}
+                                    <div class="h-px bg-zinc-800 my-1"></div>
+                                    <button type="button" @click="deleteTarget(target.target); open = false" class="group flex w-full items-center px-4 py-2.5 text-xs text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+                                        <i data-lucide="trash-2" class="mr-3 h-4 w-4 text-red-500/70 group-hover:text-red-500"></i>
+                                        Delete Target
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+          </div>
+          
+          <!-- Empty State -->
+          <div x-show="filteredTargets.length === 0" class="py-16 text-center">
+            <div class="w-16 h-16 mx-auto bg-zinc-900 rounded-2xl flex items-center justify-center mb-4 border border-zinc-800 shadow-inner">
+                <i data-lucide="search-x" class="w-8 h-8 text-zinc-600"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1">No targets found</h3>
+            <p class="text-sm text-zinc-500 max-w-xs mx-auto">We couldn't find any targets matching your filters. Try clearing them or add a new target.</p>
+            <button @click="search = ''; filterStatus = 'all'" class="mt-6 text-xs text-orange-500 hover:text-orange-400 font-medium hover:underline">Clear all filters</button>
+          </div>
+        </form>
+        
+        <!-- Pagination -->
+        <div x-show="totalPages > 1" class="px-6 py-4 bg-zinc-900/30 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-500 rounded-b-xl">
+          <div>
+            Showing <span class="font-bold text-white" x-text="(currentPage - 1) * perPage + 1"></span> 
+            to <span class="font-bold text-white" x-text="Math.min(currentPage * perPage, filteredTargets.length)"></span> 
+            of <span class="font-bold text-white" x-text="filteredTargets.length"></span> results
+          </div>
+          <div class="flex items-center gap-2">
+            <button @click="currentPage > 1 && currentPage--" :disabled="currentPage === 1" class="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium">Previous</button>
+            <div class="flex gap-1">
+                <template x-for="page in Array.from({length: totalPages}, (_, i) => i + 1)" :key="page">
+                  <button @click="currentPage = page" :class="currentPage === page ? 'bg-orange-600 text-white border-orange-600 shadow-lg shadow-orange-500/20' : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-white'" class="w-8 h-8 flex items-center justify-center rounded-lg border transition-all text-xs font-medium" x-text="page"></button>
+                </template>
+            </div>
+            <button @click="currentPage < totalPages && currentPage++" :disabled="currentPage === totalPages" class="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium">Next</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Add Target Modal -->
+  <div x-show="addTargetOpen" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" @click="addTargetOpen = false"></div>
+    <div class="relative w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden transform transition-all scale-100">
+        <div class="px-6 py-5 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
+            <div>
+                <h3 class="text-lg font-bold text-white">Add New Target</h3>
+                <p class="text-xs text-zinc-500 mt-0.5">Configure a new scrape endpoint.</p>
+            </div>
+            <button @click="addTargetOpen = false" class="text-zinc-500 hover:text-white bg-zinc-900 hover:bg-zinc-800 p-1.5 rounded-lg transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <form method="POST" action="{{ url_for('add_target') }}" class="p-6 space-y-5">
+            <input type="hidden" name="_csrf" value="{{ csrf }}">
+            
+            <div class="space-y-1.5">
+                <label class="block text-xs font-bold uppercase tracking-wider text-zinc-500">Target Address</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="network" class="w-4 h-4 text-zinc-600"></i>
+                    </div>
+                    <input type="text" name="target" placeholder="e.g. 192.168.1.10:9100" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all placeholder-zinc-600 font-mono text-sm shadow-inner">
+                </div>
+            </div>
+
+            <!-- Location Selector (Multi-Site) -->
+            <div class="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
+                <label class="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-3 flex items-center gap-2">
+                    <i data-lucide="map" class="w-3 h-3 text-orange-500"></i>
+                    Deploy to Locations
+                </label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="flex items-center gap-3 px-3 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg cursor-pointer hover:border-zinc-700 hover:bg-zinc-800/80 transition-all group">
+                        <input type="checkbox" name="locations" value="local" x-model="addTargetLocations" class="peer h-4 w-4 rounded border-zinc-600 bg-zinc-950 text-orange-600 focus:ring-0 focus:ring-offset-0">
+                        <div class="flex flex-col">
+                            <span class="text-xs font-medium text-zinc-300 group-hover:text-white">Local Server</span>
+                            <span class="text-[10px] text-zinc-600">Central</span>
+                        </div>
+                    </label>
+                    {% for loc in locations %}
+                        {% if loc.id != 'local' %}
+                        <label class="flex items-center gap-3 px-3 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg cursor-pointer hover:border-zinc-700 hover:bg-zinc-800/80 transition-all group">
+                            <input type="checkbox" name="locations" value="{{ loc.id }}" x-model="addTargetLocations" class="peer h-4 w-4 rounded border-zinc-600 bg-zinc-950 text-orange-600 focus:ring-0 focus:ring-offset-0">
+                            <div class="flex flex-col">
+                                <span class="text-xs font-medium text-zinc-300 group-hover:text-white">{{ loc.name }}</span>
+                                <span class="text-[10px] text-zinc-600">Satellite</span>
+                            </div>
+                        </label>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="border-t border-zinc-800/50"></div>
+
+            <!-- Labels Section -->
+            <div class="space-y-2">
+                <label class="text-xs font-bold uppercase tracking-wider text-zinc-500">Labels (Key=Value)</label>
+                <input type="text" name="labels" placeholder="env=prod, tier=db" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all font-mono text-sm shadow-sm group-hover:border-zinc-700">
+            </div>
+
+            <!-- Job Assignment Per Site -->
+            <div class="space-y-4">
+                 <label class="text-xs font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-2">
+                    <i data-lucide="layers" class="w-3 h-3 text-orange-500"></i>
+                    Job Assignment
+                 </label>
+                 
+                 <div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    <template x-for="locId in addTargetLocations" :key="locId">
+                        <div class="p-4 bg-zinc-900/30 border border-zinc-800 rounded-xl">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="w-1.5 h-1.5 rounded-full" :class="locId === 'local' ? 'bg-zinc-500' : 'bg-blue-500'"></span>
+                                <span class="text-xs font-bold text-white uppercase tracking-wider" x-text="getSiteName(locId)"></span>
+                            </div>
+                            
+                            <div class="flex flex-wrap gap-2">
+                                <template x-for="job in jobsBySite[locId] || []" :key="job">
+                                    <label class="cursor-pointer group">
+                                        <input type="checkbox" name="jobs" :value="job" class="peer hidden">
+                                        <span class="px-3 py-1.5 rounded-lg border text-xs font-mono transition-all block peer-checked:bg-orange-500/10 peer-checked:border-orange-500/50 peer-checked:text-orange-500 bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700">
+                                            <span x-text="job"></span>
+                                        </span>
+                                    </label>
+                                </template>
+                                <div x-show="!jobsBySite[locId] || jobsBySite[locId].length === 0" class="text-[10px] text-zinc-600 italic py-1">
+                                    No jobs defined for this site.
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <div x-show="addTargetLocations.length === 0" class="p-8 text-center border-2 border-dashed border-zinc-800 rounded-xl text-zinc-600 text-xs">
+                        Select a location above to configure jobs.
+                    </div>
+                 </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800">
+                <button type="button" @click="addTargetOpen = false" class="px-5 py-2.5 text-zinc-400 hover:text-white transition-colors text-sm font-medium">Cancel</button>
+                <button type="submit" class="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold shadow-lg shadow-orange-500/20 text-sm transition-all hover:scale-105 flex items-center gap-2">
+                    <i data-lucide="check" class="w-4 h-4"></i> Create Target
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Target Modal (Redesigned) -->
+<div x-show="editTargetOpen" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" @click="editTargetOpen = false"></div>
+    <div class="relative w-full max-w-xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden transform transition-all scale-100">
+        
+        <!-- Header -->
+        <div class="px-8 py-6 border-b border-zinc-800 bg-zinc-900/30 flex items-start justify-between">
+            <div class="flex gap-4">
+                <div class="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-orange-500 shadow-inner">
+                    <i data-lucide="settings-2" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white tracking-tight">Edit Configuration</h3>
+                    <p class="text-sm text-zinc-400 mt-1">Modify scrape parameters for <span class="font-mono text-zinc-300 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800" x-text="currentEditTarget.target"></span></p>
+                </div>
+            </div>
+            <button @click="editTargetOpen = false" class="text-zinc-500 hover:text-white bg-zinc-900 hover:bg-zinc-800 p-2 rounded-lg transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <form method="POST" action="{{ url_for('edit_target') }}" class="p-8 space-y-6">
+            <input type="hidden" name="_csrf" value="{{ csrf }}">
+            <input type="hidden" name="old_target" x-model="currentEditTarget.target">
+            <input type="hidden" name="old_location" x-model="currentEditTarget.location_id">
+            
+            <!-- Target & Location -->
+            <div class="grid grid-cols-1 gap-6">
+                <div class="space-y-2">
+                    <label class="text-xs font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-2">
+                        Target Endpoint <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i data-lucide="network" class="w-4 h-4 text-zinc-600 group-focus-within:text-orange-500 transition-colors"></i>
+                        </div>
+                        <input type="text" name="new_target" x-model="currentEditTarget.target" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-11 pr-4 py-3 text-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all font-mono text-sm shadow-sm group-hover:border-zinc-700">
+                    </div>
+                </div>
+
+                <!-- Location Selector (Multi-Site) -->
+                <div class="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-3 flex items-center gap-2">
+                        <i data-lucide="map" class="w-3 h-3 text-orange-500"></i>
+                        Deploy to Locations
+                    </label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="flex items-center gap-3 px-3 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg cursor-pointer hover:border-zinc-700 hover:bg-zinc-800/80 transition-all group">
+                            <input type="checkbox" name="locations" value="local" x-model="editTargetLocations" class="peer h-4 w-4 rounded border-zinc-600 bg-zinc-950 text-orange-600 focus:ring-0 focus:ring-offset-0">
+                            <div class="flex flex-col">
+                                <span class="text-xs font-medium text-zinc-300 group-hover:text-white">Local Server</span>
+                                <span class="text-[10px] text-zinc-600">Central</span>
+                            </div>
+                        </label>
+                        {% for loc in locations %}
+                            {% if loc.id != 'local' %}
+                            <label class="flex items-center gap-3 px-3 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg cursor-pointer hover:border-zinc-700 hover:bg-zinc-800/80 transition-all group">
+                                <input type="checkbox" name="locations" value="{{ loc.id }}" x-model="editTargetLocations" class="peer h-4 w-4 rounded border-zinc-600 bg-zinc-950 text-orange-600 focus:ring-0 focus:ring-offset-0">
+                                <div class="flex flex-col">
+                                    <span class="text-xs font-medium text-zinc-300 group-hover:text-white">{{ loc.name }}</span>
+                                    <span class="text-[10px] text-zinc-600">Satellite</span>
+                                </div>
+                            </label>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-zinc-800/50"></div>
+
+            <!-- Labels Section -->
+            <div class="space-y-2">
+                <label class="text-xs font-bold uppercase tracking-wider text-zinc-500">Labels (Key=Value)</label>
+                <textarea name="labels" x-model="currentEditTarget.labels_str" rows="2" placeholder="env=prod, tier=db" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all font-mono text-xs leading-relaxed resize-none shadow-sm group-hover:border-zinc-700"></textarea>
+            </div>
+
+            <!-- Job Assignment Per Site -->
+            <div class="space-y-4">
+                 <label class="text-xs font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-2">
+                    <i data-lucide="layers" class="w-3 h-3 text-orange-500"></i>
+                    Job Assignment
+                 </label>
+                 
+                 <div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    <template x-for="locId in editTargetLocations" :key="locId">
+                        <div class="p-4 bg-zinc-900/30 border border-zinc-800 rounded-xl">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="w-1.5 h-1.5 rounded-full" :class="locId === 'local' ? 'bg-zinc-500' : 'bg-blue-500'"></span>
+                                <span class="text-xs font-bold text-white uppercase tracking-wider" x-text="getSiteName(locId)"></span>
+                            </div>
+                            
+                            <div class="flex flex-wrap gap-2">
+                                <template x-for="job in jobsBySite[locId] || []" :key="job">
+                                    <label class="cursor-pointer group">
+                                        <input type="checkbox" name="jobs" :value="job" :checked="currentEditTarget.jobs && currentEditTarget.jobs.includes(job)" class="peer hidden">
+                                        <span class="px-3 py-1.5 rounded-lg border text-xs font-mono transition-all block peer-checked:bg-orange-500/10 peer-checked:border-orange-500/50 peer-checked:text-orange-500 bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700">
+                                            <span x-text="job"></span>
+                                        </span>
+                                    </label>
+                                </template>
+                                <div x-show="!jobsBySite[locId] || jobsBySite[locId].length === 0" class="text-[10px] text-zinc-600 italic py-1">
+                                    No jobs defined for this site.
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <div x-show="editTargetLocations.length === 0" class="p-8 text-center border-2 border-dashed border-zinc-800 rounded-xl text-zinc-600 text-xs">
+                        Select a location above to configure jobs.
+                    </div>
+                 </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex items-center justify-end gap-3 pt-6 border-t border-zinc-800">
+                <button type="button" @click="editTargetOpen = false" class="px-6 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors text-sm font-medium">Cancel</button>
+                <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white rounded-xl font-bold shadow-lg shadow-orange-900/20 text-sm transition-all hover:scale-[1.02] flex items-center gap-2 active:scale-95">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    <span>Save Changes</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% include 'settings_modal.html' %}
+{% include 'command_palette.html' %}
+
+<script>
+function targetsApp() {
+    return {
+        targets: {{ targets|tojson }},
+        jobsBySite: {{ jobs_by_site|tojson }},
+        sites: {{ locations|tojson }},
+        search: '',
+        filterStatus: 'all', // all, up, down
+        statusMap: {},
+        loading: true,
+        tsdbSize: 'Loading...',
+        
+        // Layout & UI State
+        sidebarOpen: localStorage.getItem('sidebarOpen') === 'true',
+        addTargetOpen: false,
+        editTargetOpen: false,
+        configModalOpen: false,
+        
+        // Data & Selection
+        currentEditTarget: {},
+        editTargetLocations: [],
+        addTargetLocations: ['local'], // Default for add modal
+        selectedTargets: [],
+        
+        // Pagination
+        currentPage: 1,
+        perPage: 10,
+        
+        // Sorting
+        sortCol: 'target',
+        sortAsc: true,
+
+        init() {
+            this.$watch('sidebarOpen', val => localStorage.setItem('sidebarOpen', val));
+            this.fetchStatus();
+            this.loadTSDBSize();
+            setTimeout(() => lucide.createIcons(), 100);
+            setInterval(() => this.fetchStatus(), 10000);
+        },
+
+        getSiteName(id) {
+            const site = this.sites.find(s => s.id === id);
+            return site ? site.name : id;
+        },
+
+        timeAgo(dateString) {
+            if(!dateString) return '';
+            const date = new Date(dateString);
+            const seconds = Math.floor((new Date() - date) / 1000);
+            if (seconds < 60) return seconds + "s ago";
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return minutes + "m ago";
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return hours + "h ago";
+            return Math.floor(hours / 24) + "d ago";
+        },
+
+        async fetchStatus() {
+            try {
+                const res = await fetch('/api/topology_status');
+                if(res.ok) {
+                    this.statusMap = await res.json();
+                    this.targets = this.targets.map(t => {
+                        let statusData = { health: 'unknown' };
+                        if (this.statusMap[t.target]) statusData = this.statusMap[t.target];
+                        else if (this.statusMap[t.target.split(':')[0]]) statusData = this.statusMap[t.target.split(':')[0]];
+                        
+                        let relativeTime = '';
+                        if(statusData.lastScrape) relativeTime = this.timeAgo(statusData.lastScrape);
+                        
+                        return { 
+                            ...t, 
+                            health: statusData.health,
+                            lastScrape: statusData.lastScrape,
+                            lastScrapeRelative: relativeTime,
+                            lastScrapeDuration: statusData.lastScrapeDuration,
+                            scrapeError: statusData.health !== 'up'
+                        };
+                    });
+                }
+            } catch(e) { console.error(e); }
+            this.loading = false;
+        },
+        
+        async loadTSDBSize() {
+          try {
+            const response = await fetch('/api/tsdb_size');
+            const data = await response.json();
+            this.tsdbSize = data.size || 'N/A';
+          } catch (error) { this.tsdbSize = 'N/A'; }
+        },
+
+        // Getters for Pagination & Filtering
+        get filteredTargets() {
+            let res = this.targets;
+            
+            // Search
+            if(this.search) {
+                const q = this.search.toLowerCase();
+                res = res.filter(t => 
+                    t.target.toLowerCase().includes(q) || 
+                    (t.jobs && t.jobs.some(j => j.toLowerCase().includes(q))) ||
+                    JSON.stringify(t.labels).toLowerCase().includes(q)
+                );
+            }
+            
+            // Filter by Status
+            if(this.filterStatus === 'up') res = res.filter(t => t.health === 'up');
+            if(this.filterStatus === 'down') res = res.filter(t => t.health !== 'up');
+            
+            // Sort
+            res = res.sort((a, b) => {
+                let valA = a[this.sortCol];
+                let valB = b[this.sortCol];
+                
+                // Safe string comparison
+                if (typeof valA === 'string') valA = valA.toLowerCase();
+                if (typeof valB === 'string') valB = valB.toLowerCase();
+                
+                if (valA < valB) return this.sortAsc ? -1 : 1;
+                if (valA > valB) return this.sortAsc ? 1 : -1;
+                return 0;
+            });
+
+            return res;
+        },
+
+        get totalPages() {
+            return Math.ceil(this.filteredTargets.length / this.perPage) || 1;
+        },
+
+        get paginatedTargets() {
+            const start = (this.currentPage - 1) * this.perPage;
+            const end = start + this.perPage;
+            return this.filteredTargets.slice(start, end);
+        },
+
+        // Actions
+        sortBy(col) {
+            if (this.sortCol === col) {
+                this.sortAsc = !this.sortAsc;
+            } else {
+                this.sortCol = col;
+                this.sortAsc = true;
+            }
+        },
+
+        toggleAllTargets(e) {
+            if (e.target.checked) {
+                this.selectedTargets = this.paginatedTargets.map(t => t.target);
+            } else {
+                this.selectedTargets = [];
+            }
+        },
+
+        editTarget(t) {
+            this.currentEditTarget = JSON.parse(JSON.stringify(t));
+            this.currentEditTarget.labels_str = Object.entries(t.labels || {}).map(([k,v]) => `${k}=${v}`).join(', ');
+            
+            // Initialize locations array for the multi-select
+            if (t.locations && t.locations.length > 0) {
+                this.editTargetLocations = t.locations.map(l => l.id);
+            } else {
+                this.editTargetLocations = t.location_id ? [t.location_id] : ['local'];
+            }
+            
+            this.editTargetOpen = true;
+        },
+        
+        deleteTarget(t) {
+             if(confirm('Delete ' + t + '?')) {
+                 const form = document.createElement('form');
+                 form.method = 'POST'; form.action = '{{ url_for("delete_target") }}';
+                 const csrf = document.createElement('input'); csrf.type = 'hidden'; csrf.name = '_csrf'; csrf.value = '{{ csrf }}'; form.appendChild(csrf);
+                 const target = document.createElement('input'); target.type = 'hidden'; target.name = 'target'; target.value = t; form.appendChild(target);
+                 document.body.appendChild(form); form.submit();
+             }
+        }
+    }
+}
+</script>
+</body>
+</html>

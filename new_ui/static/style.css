@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://cdn.jsdelivr.net/gh/critrace/gotham-font@main/GothamBoldItalic.ttf');
+
+@font-face {
+  font-family: 'Gotham';
+  src: url('https://cdn.jsdelivr.net/gh/critrace/gotham-font@main/GothamBoldItalic.ttf') format('truetype');
+  font-weight: bold;
+  font-style: italic;
+}
+
+body {
+  @apply bg-zinc-950 text-zinc-50 antialiased;
+}
+
+/* --- GRAIN TEXTURE (Landing Page Style) --- */
+.bg-grain {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.015;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+.glass-panel {
+  @apply bg-zinc-900/50 border border-zinc-800 backdrop-blur-sm;
+}
+
+.promere-logo-text {
+  font-family: 'Gotham', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: bold;
+  font-style: italic;
+  letter-spacing: -0.02em;
+}
+
+[x-cloak] { display: none !important; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+/* Status Dots */
+.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+.status-dot.online { background-color: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2); }
+.status-dot.offline { background-color: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); }
+
+/* --- ANIMATED GRID (Promere DNA) --- */
+.grid-background-depth {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -10;
+  overflow: hidden;
+  background: #09090b; /* Zinc 950 */
+}
+
+.grid-background-depth .grid-layer-1 {
+  position: absolute; inset: -100px;
+  background-image: linear-gradient(rgba(113, 113, 122, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.03) 1px, transparent 1px);
+  background-size: 100px 100px;
+  animation: gridMove 60s linear infinite;
+}
+
+.grid-background-depth .grid-layer-2 {
+  position: absolute; inset: -100px;
+  background-image: linear-gradient(rgba(113, 113, 122, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.02) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: gridMove 45s linear infinite reverse;
+}
+
+.grid-background-depth .grid-layer-3 {
+  position: absolute; inset: -100px;
+  background-image: linear-gradient(rgba(113, 113, 122, 0.01) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.01) 1px, transparent 1px);
+  background-size: 25px 25px;
+  animation: gridMove 30s linear infinite;
+}
+
+.grid-background-depth::after {
+  content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(249, 115, 22, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(234, 88, 12, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(251, 146, 60, 0.04) 0%, transparent 50%);
+  animation: glow 12s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes gridMove {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(50px, 50px); }
+}
+
+@keyframes glow {
+  0% { opacity: 0.4; }
+  100% { opacity: 0.8; }
+}
+
+.fade-in { animation: fadeIn 0.4s ease-out forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

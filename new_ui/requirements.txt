@@ -1,0 +1,8 @@
+flask
+waitress
+requests
+python-dotenv
+pyyaml
+bcrypt
+Flask-Limiter
+cryptography

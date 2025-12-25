@@ -1,0 +1,193 @@
+<!-- Sidebar Navigation Component -->
+<aside class="fixed left-0 top-0 bottom-0 bg-zinc-950 border-r border-zinc-800 z-40 transition-all duration-300" :class="sidebarOpen ? 'w-64' : 'w-16'">
+  <div class="h-16 flex items-center gap-3 border-b border-zinc-800" :class="!sidebarOpen ? 'justify-center px-2' : 'px-6'">
+    <img src="{{ url_for('static', filename='img/promere-logo.png') }}" alt="Promere" class="h-12 w-auto transition-all flex-shrink-0" :class="{ 'h-8': !sidebarOpen }">
+    <span class="text-xl font-bold promere-logo-text transition-opacity text-white" x-show="sidebarOpen" x-transition>PROMERE</span>
+  </div>
+  
+  <nav class="space-y-1 transition-all" :class="sidebarOpen ? 'p-4' : 'p-2'">
+    <a href="{{ url_for('dashboard') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors {% if request.endpoint == 'dashboard' %}bg-orange-950/20 text-orange-400{% else %}text-zinc-400 hover:bg-zinc-900 hover:text-white{% endif %}" :class="sidebarOpen ? '' : 'justify-center px-0'" :title="!sidebarOpen ? 'Dashboard' : ''">
+      <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+      </svg>
+      <span x-show="sidebarOpen" x-transition>Dashboard</span>
+    </a>
+    
+    <a href="{{ url_for('index') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors {% if request.endpoint == 'index' and (not request.args.get('job') or request.args.get('job') == 'all') %}bg-orange-950/20 text-orange-400{% else %}text-zinc-400 hover:bg-zinc-900 hover:text-white{% endif %}" :class="sidebarOpen ? '' : 'justify-center px-0'" :title="!sidebarOpen ? 'Targets' : ''">
+      <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
+      </svg>
+      <span x-show="sidebarOpen" x-transition>Targets</span>
+    </a>
+    
+    <a href="{{ url_for('alerts') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors {% if request.endpoint == 'alerts' %}bg-orange-950/20 text-orange-400{% else %}text-zinc-400 hover:bg-zinc-900 hover:text-white{% endif %}" :class="sidebarOpen ? '' : 'justify-center px-0'" :title="!sidebarOpen ? 'Alerts' : ''">
+      <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+      </svg>
+      <span x-show="sidebarOpen" x-transition>Alerts</span>
+    </a>
+
+    <a href="{{ url_for('topology') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors {% if request.endpoint == 'topology' %}bg-orange-950/20 text-orange-400{% else %}text-zinc-400 hover:bg-zinc-900 hover:text-white{% endif %}" :class="sidebarOpen ? '' : 'justify-center px-0'" :title="!sidebarOpen ? 'Topology' : ''">
+      <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+      </svg>
+      <div class="flex-1 flex items-center justify-between" x-show="sidebarOpen" x-transition>
+        <span>Topology</span>
+        <span class="px-1.5 py-0.5 text-[10px] font-bold bg-blue-900/40 text-blue-400 rounded-md">ALPHA</span>
+      </div>
+    </a>
+    
+    <a href="{{ url_for('alertmanager_config') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors {% if request.endpoint == 'alertmanager_config' %}bg-orange-950/20 text-orange-400{% else %}text-zinc-400 hover:bg-zinc-900 hover:text-white{% endif %}" :class="sidebarOpen ? '' : 'justify-center px-0'" :title="!sidebarOpen ? 'Notifications' : ''">
+      <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+      </svg>
+      <span x-show="sidebarOpen" x-transition>Notifications</span>
+    </a>
+    
+    <!-- Jobs (Hierarchical) -->
+    <div x-data="{ open: false }" x-show="sidebarOpen" x-transition>
+      <button @click="open = !open" type="button" class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium text-zinc-400 hover:bg-zinc-900 hover:text-white rounded-lg transition-colors">
+        <div class="flex items-center gap-3">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+          <span>Jobs</span>
+        </div>
+        <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+      </button>
+      
+      <div x-show="open" x-collapse class="mt-1 space-y-1">
+        {% for site in all_sites %}
+          {% if jobs_by_site.get(site.id) %}
+            <div x-data="{ siteOpen: false }" class="ml-4">
+                <button @click="siteOpen = !siteOpen" class="w-full flex items-center justify-between px-3 py-1.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider hover:text-orange-500">
+                    <span class="truncate">{{ site.name }}</span>
+                    <svg class="w-3 h-3 transition-transform" :class="{ 'rotate-180': siteOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="3"></path></svg>
+                </button>
+                <div x-show="siteOpen" x-collapse class="mt-0.5 space-y-0.5 border-l border-zinc-800 ml-2">
+                    {% for job in jobs_by_site[site.id] %}
+                      <a href="{{ url_for('index', job=job, site=site.id) }}" class="block pl-4 pr-3 py-1 text-sm text-zinc-400 hover:text-orange-400 rounded-r-md transition-colors">{{ job }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    
+    <a href="{{ url_for('activity_log') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors {% if request.endpoint == 'activity_log' %}bg-orange-950/20 text-orange-400{% else %}text-zinc-400 hover:bg-zinc-900 hover:text-white{% endif %}" :class="sidebarOpen ? '' : 'justify-center px-0'" :title="!sidebarOpen ? 'Activity Log' : ''">
+      <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <span x-show="sidebarOpen" x-transition>Activity Log</span>
+    </a>
+    
+    <a href="{{ url_for('team_management') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors {% if request.endpoint == 'team_management' %}bg-orange-950/20 text-orange-400{% else %}text-zinc-400 hover:bg-zinc-900 hover:text-white{% endif %}" :class="sidebarOpen ? '' : 'justify-center px-0'" :title="!sidebarOpen ? 'Team' : ''">
+      <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+      </svg>
+      <span x-show="sidebarOpen" x-transition>Team</span>
+    </a>
+    
+    <div class="my-4 border-t border-zinc-800"></div>
+
+    <!-- API Keys -->
+    <a href="{{ url_for('api_keys_page') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors {% if request.endpoint == 'api_keys_page' %}bg-orange-950/20 text-orange-400{% else %}text-zinc-400 hover:bg-zinc-900 hover:text-white{% endif %}" :class="sidebarOpen ? '' : 'justify-center px-0'" :title="!sidebarOpen ? 'API Keys' : ''">
+      <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+      </svg>
+      <span x-show="sidebarOpen" x-transition>API Access</span>
+    </a>
+    
+    <a href="#" @click.prevent="configModalOpen = true" class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors {% if False %}bg-orange-950/20 text-orange-400{% else %}text-zinc-400 hover:bg-zinc-900 hover:text-white{% endif %}" :class="sidebarOpen ? '' : 'justify-center px-0'" :title="!sidebarOpen ? 'Settings' : ''">
+      <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+      </svg>
+      <span x-show="sidebarOpen" x-transition>Settings</span>
+    </a>
+    
+    <!-- Sites Status Dashboard (Sidebar) -->
+    <div class="mt-8 px-4 space-y-2" x-show="sidebarOpen" x-transition>
+        <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2 mb-3">Monitoring Status</div>
+        <!-- 1. Local Server (Always Visible) -->
+        {% for site in all_sites if site.id == 'local' %}
+        <div class="p-3 bg-orange-900/10 rounded-lg border border-orange-900/30">
+            <div class="flex items-center gap-2 mb-2">
+                <svg class="w-3.5 h-3.5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                <span class="text-xs font-bold text-white uppercase tracking-wider">{{ site.name }}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div class="flex flex-col">
+                    <span class="text-[9px] text-zinc-500 uppercase font-bold">Prom</span>
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                        <span class="text-[10px] font-bold text-green-500">UP</span>
+                    </div>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-[9px] text-zinc-500 uppercase font-bold">Alert</span>
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                        <span class="text-[10px] font-bold text-green-500">UP</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- 2. Satellites (Collapsible) -->
+        {% set remote_sites = all_sites|rejectattr('id', 'equalto', 'local')|list %}
+        {% if remote_sites %}
+        <div x-data="{ remoteOpen: false }" class="space-y-1">
+            <button @click="remoteOpen = !remoteOpen" class="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest hover:text-orange-500 transition-colors">
+                <span>Remote Satellites ({{ remote_sites|length }})</span>
+                <svg class="w-3 h-3 transition-transform" :class="{ 'rotate-180': remoteOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            
+            <div x-show="remoteOpen" x-collapse class="space-y-2 pt-1">
+                {% for site in remote_sites %}
+                <div class="p-2.5 bg-zinc-950 border border-zinc-800 rounded-lg shadow-sm hover:border-orange-900/50 transition-all group">
+                    <div class="flex flex-col gap-2">
+                        <!-- Site Name & Last Seen -->
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                                <svg class="w-3 h-3 text-zinc-600 group-hover:text-orange-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                <span class="text-[11px] font-bold text-zinc-300 leading-tight break-words">{{ site.name }}</span>
+                            </div>
+                            <span class="text-[8px] font-medium text-zinc-500 tabular-nums bg-zinc-900 px-1 py-0.5 rounded border border-zinc-800 flex-shrink-0">
+                                {{ site.last_seen }}
+                            </span>
+                        </div>
+                        
+                        <!-- Status Indicators -->
+                        <div class="flex items-center gap-3">
+                            <!-- Prom Status -->
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-1.5 h-1.5 rounded-full {{ 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)] animate-pulse' if site.prom_status == 'up' else 'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.6)]' }}"></div>
+                                <span class="text-[9px] font-extrabold tracking-wider {{ 'text-green-400' if site.prom_status == 'up' else 'text-red-400' }}">PROM</span>
+                            </div>
+                            
+                            <!-- Separator -->
+                            <div class="h-2.5 w-px bg-zinc-800"></div>
+
+                            <!-- Alert Status -->
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-1.5 h-1.5 rounded-full {{ 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)] animate-pulse' if site.am_status == 'up' else 'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.6)]' }}"></div>
+                                <span class="text-[9px] font-extrabold tracking-wider {{ 'text-green-400' if site.am_status == 'up' else 'text-red-400' }}">ALERT</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+  </nav>
+  
+  <!-- Toggle Button -->
+  <button @click="sidebarOpen = !sidebarOpen" class="absolute -right-3 top-20 w-6 h-6 bg-zinc-800 border border-zinc-700 rounded-full flex items-center justify-center hover:bg-zinc-700 transition-all shadow-md text-zinc-400 hover:text-white">
+    <svg class="w-3 h-3 transition-transform" :class="{ 'rotate-180': !sidebarOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+    </svg>
+  </button>
+</aside>

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="fr" class="light" x-data="topologyApp()" x-cloak>
+<head>
+  <meta charset="UTF-8">
+  <title>Topology Builder - Promere</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/promere-logo.png') }}">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  
+  <!-- Vis.js -->
+  <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: { 50: '#fafafa', 100: '#f4f4f5', 200: '#e4e4e7', 300: '#d4d4d8', 400: '#a1a1aa', 500: '#71717a', 600: '#52525b', 700: '#3f3f46', 800: '#27272a', 900: '#18181b', 950: '#09090b' },
+            orange: { 50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 300: '#fdba74', 400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c', 800: '#9a3412', 900: '#7c2d12' }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', sans-serif; letter-spacing: -0.011em; }
+    [x-cloak] { display: none !important; }
+    
+    body { overflow: hidden; } /* App-like feel */
+    
+    #mynetwork {
+      width: 100%;
+      height: 100%;
+      outline: none;
+      background-color: #ffffff;
+    }
+    .dark #mynetwork { background-color: #18181b; }
+
+    .vis-manipulation { display: none !important; }
+
+    .draggable-item { cursor: grab; transition: transform 0.1s; }
+    .draggable-item:active { cursor: grabbing; transform: scale(0.95); }
+  </style>
+</head>
+
+<body class="text-gray-900 dark:text-white h-screen overflow-hidden flex bg-gray-50 dark:bg-gray-900">
+
+  <!-- Sidebar Navigation (Fixed) -->
+  {% include 'sidebar_nav.html' %}
+
+  <!-- Main Layout Wrapper (Pushed by sidebar) -->
+  <div class="flex-1 flex flex-col h-full transition-all duration-300" :class="sidebarOpen ? 'lg:ml-64' : 'lg:ml-16'">
+    
+    <!-- Top Bar -->
+    <header class="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 z-20 flex-shrink-0">
+      <div class="flex items-center gap-4">
+        <h1 class="text-xl font-semibold">Topology Builder</h1>
+      </div>
+      
+      <div class="flex items-center gap-3">
+        <div x-show="saved" x-transition.opacity.duration.1000ms class="text-xs text-green-600 dark:text-green-400 font-medium px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded">Saved</div>
+        <button @click="saveTopology()" class="px-3 py-1.5 text-xs font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 shadow-sm transition-all">
+          Save Map
+        </button>
+        <div class="h-6 w-px bg-gray-200 dark:bg-gray-700 mx-1"></div>
+        {% include 'header_user.html' %}
+      </div>
+    </header>
+
+    <!-- Workspace (Toolbox + Canvas) -->
+    <div class="flex-1 flex overflow-hidden">
+      
+      <!-- Toolbox (Left Panel) -->
+      <aside class="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col z-10 shadow-sm">
+        
+        <!-- Icons Palette -->
+        <div class="p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50">
+          <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Components</h3>
+          <div class="grid grid-cols-3 gap-3">
+            <template x-for="icon in availableIcons" :key="icon">
+              <div class="draggable-item bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-orange-400 dark:hover:border-orange-500 transition-colors flex flex-col items-center gap-1 shadow-sm" 
+                   draggable="true" @dragstart="dragStart($event, icon)">
+                <img :src="'{{ url_for('static', filename='img/') }}icon-' + icon + '.svg'" class="w-8 h-8">
+                <span class="text-[9px] font-medium text-gray-600 dark:text-gray-400 capitalize" x-text="icon"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Targets List -->
+        <div class="flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900">
+          <div class="p-4 pb-2">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Prometheus Targets</h3>
+            <div class="relative">
+              <input type="text" x-model="search" placeholder="Search..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 border-none rounded-lg focus:ring-2 focus:ring-orange-500">
+              <svg class="w-3.5 h-3.5 absolute left-2.5 top-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+          </div>
+          
+          <div class="flex-1 overflow-y-auto p-4 pt-0 space-y-2">
+            <template x-for="target in filteredTargets" :key="target.target">
+              <div class="draggable-item flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-orange-300 transition-colors"
+                   draggable="true" @dragstart="dragStart($event, 'target', target)">
+                <div class="w-2.5 h-2.5 rounded-full shadow-sm" :class="getStatusColor(target.target)"></div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate" x-text="target.target"></p>
+                  <p class="text-[10px] text-gray-500 truncate font-mono" x-text="target.jobs.join(', ')"></p>
+                </div>
+              </div>
+            </template>
+            <div x-show="filteredTargets.length === 0" class="text-center py-4 text-xs text-gray-400">No targets found</div>
+          </div>
+        </div>
+        
+        <div class="p-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 text-[10px] text-gray-500 text-center">
+          Drag to canvas &bull; Click to Edit
+        </div>
+      </aside>
+
+      <!-- Canvas Area -->
+      <div class="flex-1 relative bg-gray-100 dark:bg-black" @dragover.prevent @drop="dropItem($event)">
+        
+        <!-- Canvas Toolbar -->
+        <div class="absolute top-4 left-4 z-10 flex gap-2">
+          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-1.5 flex items-center">
+            <button @click="toggleEditMode()" :class="connectMode ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 ring-1 ring-indigo-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'" class="px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-2" title="Enable Connection Mode">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+              <span x-text="connectMode ? 'Connecting Mode' : 'Connect'"></span>
+            </button>
+            <div class="w-px bg-gray-200 dark:bg-gray-700 mx-2 h-4"></div>
+            <button @click="network.fit()" class="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors" title="Fit to Screen">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+            </button>
+          </div>
+          
+          <div x-show="connectMode" x-transition class="px-3 py-2 bg-indigo-600 text-white text-xs font-medium rounded-lg shadow-lg flex items-center gap-2 animate-pulse">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            Select Source Node...
+          </div>
+        </div>
+
+        <div id="mynetwork"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Node Edit Modal -->
+  <div x-show="editModalOpen" @keydown.escape.window="editModalOpen = false" class="fixed inset-0 z-[100]" style="display: none;">
+    <div @click="editModalOpen = false" class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"></div>
+    <div class="flex min-h-screen items-center justify-center p-4">
+      <div class="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-2xl p-6 transform transition-all">
+        <h3 class="text-lg font-bold mb-1 text-gray-900 dark:text-white">Edit Node</h3>
+        <p class="text-xs text-gray-500 mb-5">Customize appearance or remove item.</p>
+        
+        <div class="space-y-5">
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Label Name</label>
+            <input type="text" x-model="editingNode.label" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Icon Style</label>
+            <div class="grid grid-cols-5 gap-2">
+              <template x-for="icon in availableIcons" :key="icon">
+                <button @click="updateNodeIcon(icon)" 
+                        class="p-2 border rounded-lg flex flex-col items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+                        :class="editingNode.iconType === icon ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 ring-1 ring-orange-500' : 'border-gray-200 dark:border-gray-700'">
+                  <img :src="'{{ url_for('static', filename='img/') }}icon-' + icon + '.svg'" class="w-6 h-6 mb-1">
+                </button>
+              </template>
+            </div>
+          </div>
+          
+          <div class="flex gap-3 pt-2">
+            <button @click="deleteSelectedNode()" class="flex-1 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
+              Delete
+            </button>
+            <button @click="saveNodeChanges()" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg hover:from-orange-600 hover:to-orange-700 shadow-md transition-all">
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% include 'settings_modal.html' %}
+  {% include 'command_palette.html' %}
+
+  <script>
+    function topologyApp() {
+      return {
+        darkMode: false,
+        sidebarOpen: true, // Synced with global sidebar
+        search: '',
+        targets: {{ targets|tojson }},
+        network: null,
+        nodes: new vis.DataSet([]),
+        edges: new vis.DataSet([]),
+        
+        connectMode: false,
+        selectedNodeId: null, 
+        
+        editModalOpen: false,
+        editingNode: { id: null, label: '', iconType: '' },
+        
+        saved: false,
+        statusMap: {},
+        availableIcons: ['probe', 'server', 'web', 'network', 'switch', 'firewall', 'docker', 'windows', 'linux'],
+
+        init() {
+          // Sync sidebar state from localStorage
+          const savedSidebar = localStorage.getItem('sidebarOpen');
+          if (savedSidebar !== null) this.sidebarOpen = savedSidebar === 'true';
+          this.$watch('sidebarOpen', val => localStorage.setItem('sidebarOpen', val));
+          
+          this.darkMode = localStorage.getItem('theme') === 'dark';
+          this.updateTheme();
+          
+          this.$nextTick(() => {
+            this.initNetwork();
+            this.loadTopology();
+            this.fetchStatus();
+            setInterval(() => this.fetchStatus(), 30000);
+          });
+        },
+
+        get filteredTargets() {
+          if (!this.search) return this.targets;
+          return this.targets.filter(t => t.target.toLowerCase().includes(this.search.toLowerCase()));
+        },
+
+        getStatusColor(targetAddr) {
+          let status = 'unknown';
+          if (this.statusMap[targetAddr]) status = this.statusMap[targetAddr];
+          else {
+             for (const [k, v] of Object.entries(this.statusMap)) {
+               if (k.includes(targetAddr) || targetAddr.includes(k)) { status = v; break; }
+             }
+          }
+          if (status === 'up') return 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)]';
+          if (status === 'down') return 'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.6)]';
+          return 'bg-gray-300';
+        },
+
+        initNetwork() {
+          const container = document.getElementById('mynetwork');
+          const data = { nodes: this.nodes, edges: this.edges };
+          const options = {
+            nodes: {
+              borderWidth: 3,
+              shape: 'image',
+              shapeProperties: { useBorderWithImage: true },
+              font: { color: this.darkMode ? '#e5e7eb' : '#374151', size: 12, face: 'Inter', multi: true, vadjust: 4 },
+              size: 32,
+              color: {
+                border: 'transparent',
+                background: 'transparent',
+                highlight: { border: '#6366f1', background: 'transparent' }
+              }
+            },
+            edges: {
+              color: { color: this.darkMode ? '#4b5563' : '#9ca3af' },
+              width: 2,
+              smooth: { type: 'continuous', roundness: 0.5 },
+              arrows: { to: { enabled: false } } // Simple links
+            },
+            physics: { enabled: false }, 
+            interaction: { hover: true, dragNodes: true, selectConnectedEdges: false, zoomView: true }
+          };
+          this.network = new vis.Network(container, data, options);
+          
+          this.network.on("dragEnd", (params) => { if (params.nodes.length > 0) this.saveTopology(); });
+          
+          this.network.on("click", (params) => {
+            if (this.connectMode) {
+              this.handleConnectClick(params);
+            } else {
+              if (params.nodes.length === 1) {
+                this.openEditModal(params.nodes[0]);
+              }
+            }
+          });
+        },
+
+        handleConnectClick(params) {
+          if (params.nodes.length === 0) return; 
+          
+          const clickedNodeId = params.nodes[0];
+          
+          if (!this.selectedNodeId) {
+            this.selectedNodeId = clickedNodeId;
+            this.network.selectNodes([clickedNodeId]);
+          } else {
+            if (clickedNodeId !== this.selectedNodeId) {
+              this.edges.add({ 
+                from: this.selectedNodeId, 
+                to: clickedNodeId,
+                id: this.generateUUID()
+              });
+              this.saveTopology();
+              this.selectedNodeId = null;
+              this.network.unselectAll();
+            } else {
+              this.selectedNodeId = null;
+              this.network.unselectAll();
+            }
+          }
+        },
+        
+        toggleEditMode() {
+            this.connectMode = !this.connectMode;
+            if(!this.connectMode) {
+                this.selectedNodeId = null;
+                this.network.unselectAll();
+            }
+        },
+
+        openEditModal(nodeId) {
+          const node = this.nodes.get(nodeId);
+          if (!node) return;
+          
+          let iconType = 'server';
+          // Extract icon name from URL
+          const match = /icon-([a-z]+)\.svg/.exec(node.image);
+          if (match && match[1]) iconType = match[1];
+
+          this.editingNode = {
+            id: nodeId,
+            label: node.label,
+            iconType: iconType
+          };
+          this.editModalOpen = true;
+        },
+
+        updateNodeIcon(icon) {
+          this.editingNode.iconType = icon;
+        },
+
+        saveNodeChanges() {
+          const newImage = `{{ url_for('static', filename='img/') }}icon-${this.editingNode.iconType}.svg`;
+          this.nodes.update({
+            id: this.editingNode.id,
+            label: this.editingNode.label,
+            image: newImage
+          });
+          this.editModalOpen = false;
+          this.saveTopology();
+        },
+
+        deleteSelectedNode() {
+          if (confirm('Delete this item?')) {
+            this.nodes.remove(this.editingNode.id);
+            const connectedEdges = this.network.getConnectedEdges(this.editingNode.id);
+            this.edges.remove(connectedEdges);
+            
+            this.editModalOpen = false;
+            this.saveTopology();
+          }
+        },
+
+        generateUUID() {
+          return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          });
+        },
+
+        dragStart(event, type, data = null) {
+          event.dataTransfer.setData('type', type);
+          if (data) event.dataTransfer.setData('targetData', JSON.stringify(data));
+        },
+
+        dropItem(event) {
+          const type = event.dataTransfer.getData('type');
+          const rect = document.getElementById('mynetwork').getBoundingClientRect();
+          const x = event.clientX - rect.left;
+          const y = event.clientY - rect.top;
+          const canvasPos = this.network.DOMtoCanvas({x, y});
+
+          let nodeData = {
+            id: this.generateUUID(),
+            x: canvasPos.x,
+            y: canvasPos.y,
+            label: type.charAt(0).toUpperCase() + type.slice(1),
+            shape: 'image',
+            image: `{{ url_for('static', filename='img/icon-${type}.svg') }}` 
+          };
+
+          if (type === 'target') {
+            const targetData = JSON.parse(event.dataTransfer.getData('targetData'));
+            nodeData.label = targetData.target;
+            nodeData.image = `{{ url_for('static', filename='img/icon-server.svg') }}`;
+            nodeData.targetAddr = targetData.target;
+          } 
+
+          this.nodes.add(nodeData);
+          this.saveTopology();
+        },
+
+        async loadTopology() {
+          try {
+            const res = await fetch('/api/topology');
+            const data = await res.json();
+            if (data.nodes) {
+              this.nodes.clear();
+              this.edges.clear();
+              this.nodes.add(data.nodes);
+              this.edges.add(data.edges);
+              this.network.fit();
+            }
+          } catch(e) { console.error(e); }
+        },
+
+        async saveTopology() {
+          const data = { nodes: this.nodes.get(), edges: this.edges.get() };
+          try {
+            await fetch('/api/topology', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify(data)
+            });
+            this.saved = true;
+            setTimeout(() => this.saved = false, 2000);
+          } catch(e) { console.error(e); }
+        },
+
+        async fetchStatus() {
+          try {
+            const res = await fetch('/api/topology_status');
+            this.statusMap = await res.json();
+            const allNodes = this.nodes.get();
+            const updates = [];
+            
+            allNodes.forEach(node => {
+              if (node.targetAddr) {
+                let color = 'transparent';
+                let status = 'unknown';
+                if (this.statusMap[node.targetAddr]) status = this.statusMap[node.targetAddr];
+                else {
+                   for (const [k, v] of Object.entries(this.statusMap)) {
+                     if (k.includes(node.targetAddr) || node.targetAddr.includes(k)) { status = v; break; }
+                   }
+                }
+                if (status === 'up') color = '#22c55e'; // Green
+                else if (status === 'down') color = '#ef4444'; // Red
+                
+                updates.push({ id: node.id, color: { border: color } });
+              }
+            });
+            if (updates.length > 0) this.nodes.update(updates);
+          } catch(e) { console.error(e); }
+        },
+
+        updateTheme() {
+          if (this.darkMode) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>

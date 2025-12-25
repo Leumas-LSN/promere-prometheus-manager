@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="fr" class="light" x-data="activityLog()" x-cloak>
+<head>
+  <meta charset="UTF-8">
+  <title>Activity Log - Promere</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/promere-logo.png') }}">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: { 50: '#fafafa', 100: '#f4f4f5', 200: '#e4e4e7', 300: '#d4d4d8', 400: '#a1a1aa', 500: '#71717a', 600: '#52525b', 700: '#3f3f46', 800: '#27272a', 900: '#18181b', 950: '#09090b' },
+            orange: { 50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 300: '#fdba74', 400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c', 800: '#9a3412', 900: '#7c2d12' }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    
+    /* Gotham Bold Italic */
+    @font-face {
+      font-family: 'Gotham';
+      src: url('https://cdn.jsdelivr.net/gh/critrace/gotham-font@main/GothamBoldItalic.ttf') format('truetype');
+      font-weight: bold;
+      font-style: italic;
+    }
+    
+    * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: -0.011em; }
+    
+    .promere-logo-text {
+      font-family: 'Gotham', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: bold;
+      font-style: italic;
+      letter-spacing: -0.02em;
+    }
+    
+    [x-cloak] { display: none !important; }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 4px; }
+    .dark ::-webkit-scrollbar-thumb { background: #52525b; }
+
+    /* Animated Grid Background */
+    .grid-background-depth {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden;
+      background: #fafafa;
+    }
+    .dark .grid-background-depth {
+      background: #09090b;
+    }
+
+    .grid-background-depth .grid-layer-1 {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(113, 113, 122, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.05) 1px, transparent 1px);
+      background-size: 100px 100px;
+      animation: gridMove 60s linear infinite;
+    }
+
+    .grid-background-depth .grid-layer-2 {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(113, 113, 122, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: gridMove 45s linear infinite reverse;
+    }
+
+    .grid-background-depth .grid-layer-3 {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(113, 113, 122, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.02) 1px, transparent 1px);
+      background-size: 25px 25px;
+      animation: gridMove 30s linear infinite;
+    }
+
+    .grid-background-depth::after {
+      content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 50%, rgba(249, 115, 22, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(234, 88, 12, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(251, 146, 60, 0.02) 0%, transparent 50%);
+      animation: glow 12s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    .dark .grid-background-depth::after {
+      background-image: 
+        radial-gradient(circle at 20% 50%, rgba(249, 115, 22, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(234, 88, 12, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(251, 146, 60, 0.04) 0%, transparent 50%);
+    }
+
+    @keyframes gridMove {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(50px, 50px); }
+    }
+
+    @keyframes glow {
+      0% { opacity: 0.4; }
+      100% { opacity: 0.8; }
+    }
+    .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+
+<body class="text-gray-900 dark:text-white">
+  <div class="grid-background-depth">
+    <div class="grid-layer-1"></div>
+    <div class="grid-layer-2"></div>
+    <div class="grid-layer-3"></div>
+  </div>
+
+  <!-- Sidebar -->
+  {% include 'sidebar_nav.html' %}
+
+  <!-- Main Content -->
+  <div class="min-h-screen transition-all duration-300 fade-in" :class="sidebarOpen ? 'lg:ml-64' : 'lg:ml-16'">
+    
+    <!-- Top Bar -->
+    <header class="sticky top-0 z-30 h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+      <div class="h-full px-6 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <h1 class="text-xl font-semibold">Activity Log</h1>
+        </div>
+        
+        <div class="flex items-center gap-3">
+          {% include 'header_user.html' %}
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <main class="p-6">
+      
+      <!-- Filters -->
+      <div class="mb-6 flex flex-wrap gap-3">
+        <select x-model="actionFilter" class="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm">
+          <option value="all">All Actions</option>
+          <option value="add">Added</option>
+          <option value="edit">Edited</option>
+          <option value="delete">Deleted</option>
+          <option value="config">Config Changed</option>
+        </select>
+        
+        <select x-model="userFilter" class="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm">
+          <option value="all">All Users</option>
+          <option value="admin">Admin</option>
+          <option value="editor">Editor</option>
+        </select>
+        
+        <select x-model="timeFilter" class="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm">
+          <option value="all">All Time</option>
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+        </select>
+      </div>
+
+      <!-- Activity Timeline -->
+      <div class="space-y-4">
+        <template x-for="activity in filteredActivities" :key="activity.id">
+          <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 hover:border-orange-300 dark:hover:border-orange-700 transition-colors">
+            <div class="flex items-start gap-4">
+              <!-- Icon -->
+              <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+                   :class="{
+                     'bg-green-100 dark:bg-green-950/20': activity.action === 'add',
+                     'bg-orange-100 dark:bg-orange-950/20': activity.action === 'edit',
+                     'bg-red-100 dark:bg-red-950/20': activity.action === 'delete',
+                     'bg-orange-100 dark:bg-orange-950/20': activity.action === 'config'
+                   }">
+                <svg class="w-5 h-5" 
+                     :class="{
+                       'text-green-600 dark:text-green-400': activity.action === 'add',
+                       'text-orange-600 dark:text-orange-400': activity.action === 'edit',
+                       'text-red-600 dark:text-red-400': activity.action === 'delete',
+                       'text-orange-600 dark:text-orange-400': activity.action === 'config'
+                     }"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <template x-if="activity.action === 'add'">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                  </template>
+                  <template x-if="activity.action === 'edit'">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                  </template>
+                  <template x-if="activity.action === 'delete'">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                  </template>
+                  <template x-if="activity.action === 'config'">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                  </template>
+                </svg>
+              </div>
+              
+              <!-- Content -->
+              <div class="flex-1 min-w-0">
+                <p class="text-sm text-gray-900 dark:text-white font-medium mb-1" x-html="activity.message"></p>
+                <div class="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
+                  <span class="flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    <span x-text="activity.user"></span>
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span x-text="activity.time"></span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Empty State -->
+      <div x-show="filteredActivities.length === 0" class="text-center py-12">
+        <svg class="w-16 h-16 mx-auto text-gray-300 dark:text-gray-700 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No activity found</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Try adjusting your filters</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- Config Modal -->
+  <div x-show="configModalOpen" @keydown.escape.window="configModalOpen = false" class="fixed inset-0 z-[100]" style="display: none;">
+    <div @click="configModalOpen = false" class="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
+    <div class="flex min-h-screen items-center justify-center p-4">
+      <div class="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-xl">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+          <h2 class="text-xl font-semibold">Prometheus Configuration</h2>
+          <button @click="configModalOpen = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <form method="POST" action="{{ url_for('save_prometheus_config') }}" class="p-6 space-y-4">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          
+          <div>
+            <label class="block text-sm font-medium mb-2">Prometheus URL</label>
+            <input type="text" name="prometheus_url" value="{{ config.prometheus_url }}" placeholder="http://prometheus:9090/-/reload" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-2">Prometheus Base URL</label>
+            <input type="text" name="prometheus_base_url" value="{{ config.prometheus_base_url }}" placeholder="http://prometheus:9090" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-2">Alertmanager Base URL</label>
+            <input type="text" name="alertmanager_base_url" value="{{ config.alertmanager_base_url }}" placeholder="http://alertmanager:9093" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-2">Username</label>
+              <input type="text" name="prometheus_username" value="{{ config.prometheus_username }}" placeholder="admin" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-2">Password</label>
+              <input type="password" name="prometheus_password" value="{{ config.prometheus_password }}" placeholder="••••••••" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+            </div>
+          </div>
+          
+          <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg hover:from-orange-600 hover:to-orange-700">
+              Save Configuration
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {% include 'settings_modal.html' %}
+  {% include 'command_palette.html' %}
+
+  <script>
+    function activityLog() {
+      return {
+        darkMode: false,
+        sidebarOpen: true,
+        configModalOpen: false,
+        actionFilter: 'all',
+        userFilter: 'all',
+        timeFilter: 'all',
+        
+        activities: {{ activities|tojson }},
+        
+        init() {
+          // Charger la préférence sidebar depuis localStorage
+          const savedSidebar = localStorage.getItem('sidebarOpen');
+          if (savedSidebar !== null) {
+            this.sidebarOpen = savedSidebar === 'true';
+          }
+          
+          // Watch pour sauvegarder automatiquement
+          this.$watch('sidebarOpen', value => {
+            localStorage.setItem('sidebarOpen', value);
+          });
+          
+          this.darkMode = localStorage.getItem('theme') === 'dark';
+          this.updateTheme();
+        },
+        
+        get filteredActivities() {
+          let result = this.activities;
+          
+          if (this.actionFilter !== 'all') {
+            result = result.filter(a => a.action === this.actionFilter);
+          }
+          
+          if (this.userFilter !== 'all') {
+            result = result.filter(a => a.user === this.userFilter);
+          }
+          
+          return result;
+        },
+        
+        updateTheme() {
+          if (this.darkMode) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+          }
+        }
+      }
+    }
+  </script>
+
+</body>
+</html>

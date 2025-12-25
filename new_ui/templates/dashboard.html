@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="fr" class="light" x-data="dashboard()" x-cloak>
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard - PROMERE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/promere-logo.png') }}">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  
+  <!-- GridStack -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.1.0/dist/gridstack.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.1.0/dist/gridstack-extra.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/gridstack@10.1.0/dist/gridstack-all.js"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: { 50: '#fafafa', 100: '#f4f4f5', 200: '#e4e4e7', 300: '#d4d4d8', 400: '#a1a1aa', 500: '#71717a', 600: '#52525b', 700: '#3f3f46', 800: '#27272a', 900: '#18181b', 950: '#09090b' },
+            orange: { 50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 300: '#fdba74', 400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c', 800: '#9a3412', 900: '#7c2d12' }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    
+    /* Gotham Bold Italic */
+    @font-face {
+      font-family: 'Gotham';
+      src: url('https://cdn.jsdelivr.net/gh/critrace/gotham-font@main/GothamBoldItalic.ttf') format('truetype');
+      font-weight: bold;
+      font-style: italic;
+    }
+    
+    * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: -0.011em; }
+    
+    .promere-logo-text {
+      font-family: 'Gotham', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: bold;
+      font-style: italic;
+      letter-spacing: -0.02em;
+    }
+    
+    [x-cloak] { display: none !important; }
+    
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 4px; }
+    .dark ::-webkit-scrollbar-thumb { background: #52525b; }
+    
+    /* GridStack overrides */
+    .grid-stack { min-height: 400px; }
+    
+    .grid-stack-item-content {
+      background: white;
+      border: 1px solid #e4e4e7;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+    
+    .dark .grid-stack-item-content {
+      background: #18181b;
+      border-color: #3f3f46;
+    }
+    
+    .panel-header {
+      padding: 8px 12px;
+      background: transparent;
+      border-bottom: 1px solid #f4f4f5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: move;
+      min-height: 36px;
+    }
+    
+    .dark .panel-header {
+      border-bottom-color: #27272a;
+    }
+    
+    .panel-header .text-sm {
+      font-size: 0.813rem;
+      font-weight: 500;
+      color: #52525b;
+    }
+    
+    .dark .panel-header .text-sm {
+      color: #a1a1aa;
+    }
+    
+    .panel-iframe {
+      width: 100%;
+      height: calc(100% - 37px);
+      border: none;
+    }
+    
+    .panel-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    
+    .panel-header:hover .panel-actions {
+      opacity: 1;
+    }
+    
+    .panel-actions button {
+      padding: 4px;
+      border-radius: 4px;
+      transition: all 0.15s;
+      background: transparent;
+      color: #71717a;
+    }
+    
+    .panel-actions button:hover {
+      background: #f4f4f5;
+      color: #3f3f46;
+    }
+    
+    .dark .panel-actions button {
+      color: #71717a;
+    }
+    
+    .dark .panel-actions button:hover {
+      background: #27272a;
+      color: #a1a1aa;
+    }
+    
+    .panel-actions button.btn-delete:hover {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+    
+    .dark .panel-actions button.btn-delete:hover {
+      background: #7f1d1d;
+      color: #f87171;
+    }
+    
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-slide-up {
+      animation: slideUp 0.5s ease-out forwards;
+    }
+
+    /* Animated Grid Background */
+    .grid-background-depth {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden;
+      background: #fafafa;
+    }
+    .dark .grid-background-depth {
+      background: #09090b;
+    }
+
+    .grid-background-depth .grid-layer-1 {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(113, 113, 122, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.03) 1px, transparent 1px);
+      background-size: 100px 100px;
+      animation: gridMove 60s linear infinite;
+    }
+
+    .grid-background-depth .grid-layer-2 {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(113, 113, 122, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.02) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: gridMove 45s linear infinite reverse;
+    }
+
+    .grid-background-depth .grid-layer-3 {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(113, 113, 122, 0.01) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.01) 1px, transparent 1px);
+      background-size: 25px 25px;
+      animation: gridMove 30s linear infinite;
+    }
+
+    .grid-background-depth::after {
+      content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 50%, rgba(249, 115, 22, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(234, 88, 12, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(251, 146, 60, 0.02) 0%, transparent 50%);
+      animation: glow 12s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    .dark .grid-background-depth::after {
+      background-image: 
+        radial-gradient(circle at 20% 50%, rgba(249, 115, 22, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(234, 88, 12, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(251, 146, 60, 0.04) 0%, transparent 50%);
+    }
+
+    @keyframes gridMove {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(50px, 50px); }
+    }
+
+    @keyframes glow {
+      0% { opacity: 0.4; }
+      100% { opacity: 0.8; }
+    }
+    
+    .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+
+<body class="text-gray-900 dark:text-white">
+  <div class="grid-background-depth">
+    <div class="grid-layer-1"></div>
+    <div class="grid-layer-2"></div>
+    <div class="grid-layer-3"></div>
+  </div>
+
+  <!-- Sidebar -->
+  {% include 'sidebar_nav.html' %}
+
+  <!-- Main Content -->
+  <div class="min-h-screen transition-all duration-300 fade-in" :class="sidebarOpen ? 'lg:ml-64' : 'lg:ml-16'">
+    
+    <!-- Top Bar -->
+    <header class="sticky top-0 z-30 h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+      <div class="h-full px-6 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <h1 class="text-xl font-semibold">Dashboard</h1>
+        </div>
+        
+        <div class="flex items-center gap-3">
+          {% include 'header_user.html' %}
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <main class="p-6 space-y-8">
+      
+      <!-- KPI Section -->
+      <section>
+        <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Infrastructure Overview</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          
+          <!-- Prometheus Status -->
+          <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-sm transition-colors relative overflow-hidden group"
+               :class="stats.prometheus_status === 'up' ? 'hover:border-green-200 dark:hover:border-green-900' : 'hover:border-red-200 dark:hover:border-red-900'">
+            <div class="absolute -right-4 -top-4 w-24 h-24 rounded-full group-hover:scale-110 transition-transform"
+                 :class="stats.prometheus_status === 'up' ? 'bg-green-50 dark:bg-green-900/10' : 'bg-red-50 dark:bg-red-900/10'"></div>
+            <div class="relative">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">System Status</h3>
+                <div class="p-2 rounded-lg" :class="stats.prometheus_status === 'up' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <span class="text-2xl font-bold text-gray-900 dark:text-white" x-text="stats.prometheus_status === 'up' ? 'Online' : (stats.prometheus_status === 'down' ? 'Offline' : 'Unknown')"></span>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">Prometheus Core</p>
+            </div>
+          </div>
+
+          <!-- Targets -->
+          <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-sm hover:border-blue-200 dark:hover:border-blue-900 transition-colors relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-50 dark:bg-blue-900/10 rounded-full group-hover:scale-110 transition-transform"></div>
+            <div class="relative">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Targets Health</h3>
+                <div class="p-2 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                </div>
+              </div>
+              <div class="flex items-end gap-3">
+                <span class="text-2xl font-bold text-gray-900 dark:text-white" x-text="stats.targets_total || 0"></span>
+                <span class="text-sm text-green-600 dark:text-green-400 font-medium mb-1"><span x-text="stats.targets_up || 0"></span> Up</span>
+                <span class="text-sm text-red-600 dark:text-red-400 font-medium mb-1" x-show="stats.targets_down > 0"><span x-text="stats.targets_down"></span> Down</span>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">Monitored endpoints</p>
+            </div>
+          </div>
+
+          <!-- Alerts -->
+          <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-sm hover:border-red-200 dark:hover:border-red-900 transition-colors relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 w-24 h-24 bg-red-50 dark:bg-red-900/10 rounded-full group-hover:scale-110 transition-transform"></div>
+            <div class="relative">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Active Alerts</h3>
+                <div class="p-2 rounded-lg" :class="stats.alerts_firing > 0 ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 animate-pulse' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                </div>
+              </div>
+              <div class="flex items-end gap-3">
+                <span class="text-2xl font-bold text-gray-900 dark:text-white" x-text="stats.alerts_firing || 0"></span>
+                <span class="text-sm text-yellow-600 dark:text-yellow-400 font-medium mb-1"><span x-text="stats.alerts_pending || 0"></span> Pending</span>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">Firing rules</p>
+            </div>
+          </div>
+
+          <!-- Storage -->
+          <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-sm hover:border-purple-200 dark:hover:border-purple-900 transition-colors relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 w-24 h-24 bg-purple-50 dark:bg-purple-900/10 rounded-full group-hover:scale-110 transition-transform"></div>
+            <div class="relative">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">TSDB Storage</h3>
+                <div class="p-2 rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                </div>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <span class="text-2xl font-bold text-gray-900 dark:text-white" x-text="tsdbSize"></span>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">Disk usage</p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Grafana Section -->
+      <section>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Custom Visualizations</h2>
+          <div class="flex gap-2">
+            <button @click="savePanels(true)" class="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-sm">
+              <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+              Save Layout
+            </button>
+            <button @click="addPanelOpen = true" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-sm">
+              <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+              </svg>
+              Add Panel
+            </button>
+          </div>
+        </div>
+
+        <!-- GridStack Grid Container -->
+        <div class="bg-gray-50 dark:bg-gray-900/50 border border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-4 min-h-[400px]">
+          <div class="grid-stack" id="grid">
+            <!-- Panels will be added here dynamically -->
+          </div>
+
+          <!-- Empty State -->
+          <div x-show="panels.length === 0" class="text-center py-20">
+            <svg class="w-16 h-16 mx-auto text-gray-300 dark:text-gray-700 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Workspace is empty</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">Add Grafana panels to build your custom view</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Add Panel Modal -->
+  <div x-show="addPanelOpen" @keydown.escape.window="addPanelOpen = false" class="fixed inset-0 z-[100]" style="display: none;">
+    <div @click="addPanelOpen = false" class="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
+    <div class="flex min-h-screen items-center justify-center p-4">
+      <div class="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-xl">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+          <h2 class="text-xl font-semibold">Add Grafana Panel</h2>
+          <button @click="addPanelOpen = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <form @submit.prevent="addPanel()" class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">Panel Name</label>
+            <input type="text" x-model="newPanel.name" placeholder="CPU Usage" required class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+            <p class="mt-1 text-xs text-gray-500">Give your panel a descriptive name</p>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-2">Grafana Embed URL</label>
+            <input type="url" x-model="newPanel.url" placeholder="https://grafana.example.com/d/xxx?panelId=2&theme=light" required class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+            <p class="mt-1 text-xs text-gray-500">Copy the panel share URL from Grafana (with &kiosk for fullscreen)</p>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-2">Panel Size</label>
+            <select x-model="newPanel.size" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+              <option value="small">Small (4 columns × 3 rows)</option>
+              <option value="medium" selected>Medium (6 columns × 4 rows)</option>
+              <option value="large">Large (8 columns × 5 rows)</option>
+              <option value="full">Full Width (12 columns × 6 rows)</option>
+            </select>
+          </div>
+          
+          <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+            <button type="button" @click="addPanelOpen = false" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+              Cancel
+            </button>
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg hover:from-orange-600 hover:to-orange-700">
+              Add Panel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Panel Modal -->
+  <div x-show="editPanelOpen" @keydown.escape.window="editPanelOpen = false" class="fixed inset-0 z-[100]" style="display: none;">
+    <div @click="editPanelOpen = false" class="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
+    <div class="flex min-h-screen items-center justify-center p-4">
+      <div class="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-xl">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+          <h2 class="text-xl font-semibold">Edit Panel</h2>
+          <button @click="editPanelOpen = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <form @submit.prevent="saveEditPanel()" class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">Panel Name</label>
+            <input type="text" x-model="currentPanel.name" required class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-2">Grafana Embed URL</label>
+            <input type="url" x-model="currentPanel.url" required class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+          </div>
+          
+          <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+            <button type="button" @click="editPanelOpen = false" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+              Cancel
+            </button>
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg hover:from-orange-600 hover:to-orange-700">
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {% include 'settings_modal.html' %}
+  {% include 'command_palette.html' %}
+
+  <script>
+    function dashboard() {
+      return {
+        darkMode: false,
+        sidebarOpen: true,
+        configModalOpen: false,
+        addPanelOpen: false,
+        editPanelOpen: false,
+        tsdbSize: 'Loading...',
+        stats: {
+          prometheus_status: 'loading',
+          targets_up: 0,
+          targets_down: 0,
+          targets_total: 0,
+          alerts_firing: 0,
+          alerts_pending: 0
+        },
+        grid: null,
+        panels: [],
+        newPanel: {
+          name: '',
+          url: '',
+          size: 'medium'
+        },
+        currentPanel: {},
+        
+        init() {
+          // Charger la préférence sidebar depuis localStorage
+          const savedSidebar = localStorage.getItem('sidebarOpen');
+          if (savedSidebar !== null) {
+            this.sidebarOpen = savedSidebar === 'true';
+          }
+          
+          // Watch pour sauvegarder automatiquement
+          this.$watch('sidebarOpen', value => {
+            localStorage.setItem('sidebarOpen', value);
+          });
+          
+          this.darkMode = localStorage.getItem('theme') === 'dark';
+          this.updateTheme();
+          
+          this.loadStats();
+          this.loadTSDBSize();
+          this.loadPanels();
+          this.initGrid();
+          
+          // Refresh stats periodically
+          setInterval(() => this.loadStats(), 30000);
+        },
+        
+        async loadStats() {
+          try {
+            const response = await fetch('/api/global_stats');
+            this.stats = await response.json();
+          } catch (e) {
+            console.error('Error fetching stats:', e);
+          }
+        },
+        
+        async loadTSDBSize() {
+          try {
+            const response = await fetch('/api/tsdb_size');
+            const data = await response.json();
+            this.tsdbSize = data.size || 'N/A';
+          } catch (error) {
+            this.tsdbSize = 'N/A';
+          }
+        },
+        
+        async loadPanels() {
+          try {
+            const response = await fetch('/api/dashboard_panels');
+            const data = await response.json();
+            this.panels = data.panels || [];
+            
+            // Render panels
+            this.$nextTick(() => {
+              this.renderPanels();
+            });
+          } catch (error) {
+            console.error('Error loading panels:', error);
+          }
+        },
+        
+        initGrid() {
+          this.$nextTick(() => {
+            this.grid = GridStack.init({
+              cellHeight: 80,
+              margin: 16,
+              float: true, // Allow widgets to float if needed, or false for gravity
+              disableOneColumnMode: true, // Prevent mobile layout collapsing
+              animate: true,
+              resizable: {
+                handles: 'e, se, s, sw, w'
+              }
+            });
+            
+            // Save on change (drag or resize stop)
+            this.grid.on('change', (event, items) => {
+              this.savePanels();
+            });
+          });
+        },
+        
+        renderPanels() {
+          if (!this.grid) return;
+          
+          this.grid.removeAll();
+          this.grid.batchUpdate();
+          
+          this.panels.forEach(panel => {
+            // Priority to saved dimensions (w, h)
+            let w = parseInt(panel.w);
+            let h = parseInt(panel.h);
+            
+            // Fallback to size preset if no saved dimensions
+            if (!w || !h || isNaN(w) || isNaN(h)) {
+              const sizes = {
+                small: { w: 4, h: 3 },
+                medium: { w: 6, h: 4 },
+                large: { w: 8, h: 5 },
+                full: { w: 12, h: 6 }
+              };
+              const size = sizes[panel.size] || sizes.medium;
+              w = size.w;
+              h = size.h;
+            }
+            
+            const escapeName = panel.name.replace(/'/g, '&apos;').replace(/"/g, '&quot;');
+            const escapeUrl = panel.url.replace(/'/g, '&apos;').replace(/"/g, '&quot;');
+            
+            this.grid.addWidget({
+              id: String(panel.id), // Force string ID
+              x: panel.x !== undefined ? parseInt(panel.x) : undefined,
+              y: panel.y !== undefined ? parseInt(panel.y) : undefined,
+              w: w,
+              h: h,
+              autoPosition: false, 
+              content: `
+                <div class="panel-header">
+                  <span class="text-sm font-medium">${escapeName}</span>
+                  <div class="panel-actions">
+                    <button class="btn-refresh" data-panel-id="${panel.id}" title="Refresh">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                      </svg>
+                    </button>
+                    <button class="btn-edit" data-panel-id="${panel.id}" title="Edit">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                      </svg>
+                    </button>
+                    <button class="btn-delete" data-panel-id="${panel.id}" title="Delete">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <iframe class="panel-iframe" src="${escapeUrl}" frameborder="0"></iframe>
+              `
+            });
+          });
+          
+          this.grid.commit();
+          
+          // Attacher event listeners après render
+          this.$nextTick(() => {
+            this.attachEventListeners();
+          });
+        },
+        
+        attachEventListeners() {
+          // Event delegation pour les boutons dynamiques
+          const self = this;
+          
+          document.querySelectorAll('.btn-refresh').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              const panelId = this.getAttribute('data-panel-id');
+              self.refreshPanel(panelId);
+            });
+          });
+          
+          document.querySelectorAll('.btn-edit').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              const panelId = this.getAttribute('data-panel-id');
+              self.editPanelById(panelId);
+            });
+          });
+          
+          document.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              const panelId = this.getAttribute('data-panel-id');
+              self.deletePanel(panelId);
+            });
+          });
+        },
+        
+        addPanel() {
+          // Calculer les dimensions initiales basées sur size
+          const sizes = {
+            small: { w: 4, h: 3 },
+            medium: { w: 6, h: 4 },
+            large: { w: 8, h: 5 },
+            full: { w: 12, h: 6 }
+          };
+          
+          const size = sizes[this.newPanel.size] || sizes.medium;
+          
+          const panel = {
+            id: Date.now().toString(),
+            name: this.newPanel.name,
+            url: this.newPanel.url,
+            size: this.newPanel.size,
+            x: 0,
+            y: 0,
+            w: size.w,  // Sauvegarder les dimensions
+            h: size.h   // Sauvegarder les dimensions
+          };
+          
+          this.panels.push(panel);
+          this.renderPanels();
+          this.savePanels();
+          
+          // Reset form
+          this.newPanel = { name: '', url: '', size: 'medium' };
+          this.addPanelOpen = false;
+        },
+        
+        editPanelById(id) {
+          const panel = this.panels.find(p => p.id === id);
+          if (panel) {
+            this.currentPanel = { ...panel };
+            this.editPanelOpen = true;
+          }
+        },
+        
+        saveEditPanel() {
+          const index = this.panels.findIndex(p => p.id === this.currentPanel.id);
+          if (index !== -1) {
+            this.panels[index].name = this.currentPanel.name;
+            this.panels[index].url = this.currentPanel.url;
+            this.renderPanels();
+            this.savePanels();
+          }
+          this.editPanelOpen = false;
+        },
+        
+        deletePanel(id) {
+          if (confirm('Delete this panel?')) {
+            this.panels = this.panels.filter(p => p.id !== id);
+            this.renderPanels();
+            this.savePanels();
+          }
+        },
+        
+        refreshPanel(id) {
+          const iframe = document.querySelector(`[gs-id="${id}"] iframe`);
+          if (iframe) {
+            iframe.src = iframe.src;
+          }
+        },
+        
+        async savePanels(manual = false) {
+          if (!this.grid) return;
+          
+          // Get updated positions AND SIZES from engine nodes directly
+          const nodes = this.grid.engine.nodes;
+          
+          nodes.forEach(node => {
+            // Ensure ID is string for comparison
+            const panel = this.panels.find(p => String(p.id) === String(node.id));
+            if (panel) {
+              // Update position
+              panel.x = parseInt(node.x);
+              panel.y = parseInt(node.y);
+              
+              // Update size (width and height)
+              panel.w = parseInt(node.w);
+              panel.h = parseInt(node.h);
+            }
+          });
+          
+          try {
+            const response = await fetch('/api/dashboard_panels', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ panels: this.panels })
+            });
+            
+            if (response.ok) {
+              if (manual) alert('Layout saved successfully!');
+            } else {
+              console.error('❌ Failed to save panels');
+              if (manual) alert('Failed to save layout.');
+            }
+          } catch (error) {
+            console.error('Error saving panels:', error);
+            if (manual) alert('Error saving layout: ' + error);
+          }
+        },
+        
+        updateTheme() {
+          if (this.darkMode) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+          }
+        }
+      }
+    }
+  </script>
+
+</body>
+</html>

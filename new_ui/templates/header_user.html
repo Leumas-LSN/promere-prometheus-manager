@@ -1,0 +1,27 @@
+<div class="flex items-center gap-3">
+  <!-- Theme Toggle Removed -->
+  
+  <!-- User Menu -->
+  <div class="flex items-center gap-2 pl-3 border-l border-zinc-800">
+    {% if current_user and current_user.avatar %}
+      <div class="w-8 h-8 rounded-full overflow-hidden border border-zinc-700">
+        <img src="{{ url_for('static', filename='avatars/' + current_user.avatar) }}" alt="{{ current_user.username }}" class="w-full h-full object-cover">
+      </div>
+    {% else %}
+      <div class="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center">
+        <span class="text-sm font-semibold text-white">{{ (current_user.username if current_user else role)[0]|upper }}</span>
+      </div>
+    {% endif %}
+    
+    <div class="hidden md:block">
+      <p class="text-sm font-medium text-white">{{ (current_user.fullname if current_user.fullname else current_user.username) if current_user else role|capitalize }}</p>
+    </div>
+  </div>
+  
+  <!-- Logout -->
+  <a href="{{ url_for('logout') }}" class="p-2 text-red-400 hover:bg-red-950/20 rounded-lg" title="Logout">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+    </svg>
+  </a>
+</div>

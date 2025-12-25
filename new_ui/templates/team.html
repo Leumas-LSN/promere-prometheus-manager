@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="fr" class="light">
+<head>
+  <meta charset="UTF-8">
+  <title>Team Management - Promere</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/promere-logo.png') }}">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: { 50: '#fafafa', 100: '#f4f4f5', 200: '#e4e4e7', 300: '#d4d4d8', 400: '#a1a1aa', 500: '#71717a', 600: '#52525b', 700: '#3f3f46', 800: '#27272a', 900: '#18181b', 950: '#09090b' },
+            orange: { 50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 300: '#fdba74', 400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c', 800: '#9a3412', 900: '#7c2d12' }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    
+    /* Gotham Bold Italic */
+    @font-face {
+      font-family: 'Gotham';
+      src: url('https://cdn.jsdelivr.net/gh/critrace/gotham-font@main/GothamBoldItalic.ttf') format('truetype');
+      font-weight: bold;
+      font-style: italic;
+    }
+    
+    * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: -0.011em; }
+    
+    .promere-logo-text {
+      font-family: 'Gotham', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: bold;
+      font-style: italic;
+      letter-spacing: -0.02em;
+    }
+    
+    [x-cloak] { display: none !important; }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 4px; }
+    .dark ::-webkit-scrollbar-thumb { background: #52525b; }
+
+    /* Animated Grid Background */
+    .grid-background-depth {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden;
+      background: #fafafa;
+    }
+    .dark .grid-background-depth {
+      background: #09090b;
+    }
+
+    .grid-background-depth .grid-layer-1 {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(113, 113, 122, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.03) 1px, transparent 1px);
+      background-size: 100px 100px;
+      animation: gridMove 60s linear infinite;
+    }
+
+    .grid-background-depth .grid-layer-2 {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(113, 113, 122, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.02) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: gridMove 45s linear infinite reverse;
+    }
+
+    .grid-background-depth .grid-layer-3 {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(113, 113, 122, 0.01) 1px, transparent 1px), linear-gradient(90deg, rgba(113, 113, 122, 0.01) 1px, transparent 1px);
+      background-size: 25px 25px;
+      animation: gridMove 30s linear infinite;
+    }
+
+    .grid-background-depth::after {
+      content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 50%, rgba(249, 115, 22, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(234, 88, 12, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(251, 146, 60, 0.02) 0%, transparent 50%);
+      animation: glow 12s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    .dark .grid-background-depth::after {
+      background-image: 
+        radial-gradient(circle at 20% 50%, rgba(249, 115, 22, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(234, 88, 12, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(251, 146, 60, 0.04) 0%, transparent 50%);
+    }
+
+    @keyframes gridMove {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(50px, 50px); }
+    }
+
+    @keyframes glow {
+      0% { opacity: 0.4; }
+      100% { opacity: 0.8; }
+    }
+    .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+
+<body class="text-gray-900 dark:text-white" x-data="teamManagement()">
+  <div class="grid-background-depth">
+    <div class="grid-layer-1"></div>
+    <div class="grid-layer-2"></div>
+    <div class="grid-layer-3"></div>
+  </div>
+
+  <!-- Sidebar -->
+  {% include 'sidebar_nav.html' %}
+
+  <!-- Main Content -->
+  <div class="min-h-screen transition-all duration-300 fade-in" :class="sidebarOpen ? 'lg:ml-64' : 'lg:ml-16'">
+    
+    <!-- Top Bar -->
+    <header class="sticky top-0 z-30 h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+      <div class="h-full px-6 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <h1 class="text-xl font-semibold">Team Management</h1>
+        </div>
+        
+        <div class="flex items-center gap-3">
+          {% include 'header_user.html' %}
+        </div>
+      </div>
+    </header>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="p-6">
+          {% for category, message in messages %}
+            <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 text-red-900 dark:text-red-200{% elif category == 'success' %}bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 text-green-900 dark:text-green-200{% else %}bg-gray-50 dark:bg-gray-950/20 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-200{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Page Content -->
+    <main class="p-6">
+      
+      <!-- Header with Add Button -->
+      <div class="mb-6 flex items-center justify-between">
+        <div>
+          <p class="text-gray-600 dark:text-gray-400">Manage user accounts and permissions</p>
+        </div>
+        
+        {% if role == 'admin' %}
+          <button @click="addUserOpen = true" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-sm">
+            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            Add User
+          </button>
+        {% endif %}
+      </div>
+
+      <!-- Users Table -->
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
+        <table class="w-full">
+          <thead class="bg-gray-50 dark:bg-gray-900/50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">User</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Role</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Last Login</th>
+              {% if role == 'admin' %}
+                <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+            {% for user in users %}
+              <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-3">
+                    {% if user.avatar %}
+                      <div class="w-10 h-10 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700">
+                        <img src="{{ url_for('static', filename='avatars/' + user.avatar) }}" alt="{{ user.username }}" class="w-full h-full object-cover">
+                      </div>
+                    {% else %}
+                      <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center">
+                        <span class="text-sm font-semibold text-white">{{ user.username[0]|upper }}</span>
+                      </div>
+                    {% endif %}
+                    <div>
+                      <p class="text-sm font-medium">{{ user.username }}</p>
+                      <p class="text-xs text-gray-500">{{ user.email or 'No email' }}</p>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="px-2.5 py-1 text-xs font-medium rounded-full
+                               {% if user.role == 'admin' %}bg-orange-100 dark:bg-orange-950/20 text-orange-700 dark:text-orange-400
+                               {% elif user.role == 'editor' %}bg-orange-50 dark:bg-orange-950/10 text-orange-600 dark:text-orange-300
+                               {% else %}bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400{% endif %}">
+                    {{ user.role|capitalize }}
+                  </span>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="inline-flex items-center gap-1.5 text-xs">
+                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                    Active
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                  {{ user.last_login or 'Never' }}
+                </td>
+                {% if role == 'admin' %}
+                  <td class="px-6 py-4 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                    <button @click="openEditModal(JSON.parse($el.dataset.user))" data-user="{{ user|tojson|forceescape }}" class="p-1.5 text-gray-500 hover:text-orange-600 transition-colors" title="Edit Profile">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    </button>
+                      {% if user.username != 'admin' %}
+                        <form method="POST" action="{{ url_for('delete_user') }}" class="inline">
+                          <input type="hidden" name="_csrf" value="{{ csrf }}">
+                          <input type="hidden" name="username" value="{{ user.username }}">
+                          <button type="submit" onclick="return confirm('Delete user {{ user.username }}?')" class="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                          </button>
+                        </form>
+                      {% endif %}
+                    </div>
+                  </td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Info Box -->
+      <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+        <div class="flex gap-3">
+          <svg class="w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <div class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="font-medium mb-1">User credentials are managed via environment variables (.env file)</p>
+            <p class="text-gray-500 dark:text-gray-500">ADMIN_USER, ADMIN_PASS, EDIT_USER, EDIT_PASS, VIEW_USER, VIEW_PASS</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Config Modal -->
+  <div x-show="configModalOpen" @keydown.escape.window="configModalOpen = false" class="fixed inset-0 z-[100]" style="display: none;">
+    <div @click="configModalOpen = false" class="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
+    <div class="flex min-h-screen items-center justify-center p-4">
+      <div class="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-xl">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+          <h2 class="text-xl font-semibold">Prometheus Configuration</h2>
+          <button @click="configModalOpen = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <form method="POST" action="{{ url_for('save_prometheus_config') }}" class="p-6 space-y-4">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          
+          <div>
+            <label class="block text-sm font-medium mb-2">Prometheus URL</label>
+            <input type="text" name="prometheus_url" value="{{ config.prometheus_url }}" placeholder="http://prometheus:9090/-/reload" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-2">Prometheus Base URL</label>
+            <input type="text" name="prometheus_base_url" value="{{ config.prometheus_base_url }}" placeholder="http://prometheus:9090" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-2">Alertmanager Base URL</label>
+            <input type="text" name="alertmanager_base_url" value="{{ config.alertmanager_base_url }}" placeholder="http://alertmanager:9093" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-2">Username</label>
+              <input type="text" name="prometheus_username" value="{{ config.prometheus_username }}" placeholder="admin" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-2">Password</label>
+              <input type="password" name="prometheus_password" value="{{ config.prometheus_password }}" placeholder="••••••••" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+            </div>
+          </div>
+          
+          <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg hover:from-orange-600 hover:to-orange-700">
+              Save Configuration
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add User Modal -->
+  <div x-show="addUserOpen" @keydown.escape.window="addUserOpen = false" class="fixed inset-0 z-[100]" style="display: none;">
+    <div @click="addUserOpen = false" class="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
+    <div class="flex min-h-screen items-center justify-center p-4">
+      <div class="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-xl">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+          <h2 class="text-xl font-semibold">Add New User</h2>
+          <button @click="addUserOpen = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="p-6">
+          <div class="mb-4 p-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+            <p class="text-sm text-orange-900 dark:text-orange-200">
+              Users must be configured in the .env file. This is a read-only view.
+            </p>
+          </div>
+          
+          <button @click="addUserOpen = false" class="w-full px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div x-show="editUserOpen" @keydown.escape.window="editUserOpen = false" class="fixed inset-0 z-[100]" style="display: none;">
+    <div @click="editUserOpen = false" class="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
+    <div class="flex min-h-screen items-center justify-center p-4">
+      <div class="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-xl">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+          <h2 class="text-xl font-semibold">Edit Profile</h2>
+          <button @click="editUserOpen = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <form method="POST" action="{{ url_for('update_profile') }}" enctype="multipart/form-data" class="p-6 space-y-4">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <input type="hidden" name="username" :value="editingUser.username">
+          
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-16 h-16 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+              <img :src="editingUser.avatar || '{{ url_for('static', filename='img/default-avatar.png') }}'" alt="Avatar" class="w-full h-full object-cover">
+            </div>
+            <div class="flex-1">
+              <label class="block text-sm font-medium mb-1">Avatar</label>
+              <input type="file" name="avatar_file" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 dark:file:bg-orange-900/20 dark:file:text-orange-400">
+              <p class="text-xs text-gray-500 mt-1">JPG, PNG or GIF. Max 2MB.</p>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-2">Email</label>
+            <input type="email" name="email" :value="editingUser.email" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-2">Bio</label>
+            <textarea name="bio" rows="3" :value="editingUser.bio" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"></textarea>
+          </div>
+          
+          <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+            <button type="button" @click="editUserOpen = false" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">Cancel</button>
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg hover:from-orange-600 hover:to-orange-700">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {% include 'settings_modal.html' %}
+  {% include 'command_palette.html' %}
+
+  <script>
+    function teamManagement() {
+      return {
+        darkMode: false,
+        sidebarOpen: true,
+        configModalOpen: false,
+        addUserOpen: false,
+        editUserOpen: false,
+        editingUser: { username: '', email: '', role: '', avatar: '', bio: '' },
+        
+        init() {
+          // Charger la préférence sidebar depuis localStorage
+          const savedSidebar = localStorage.getItem('sidebarOpen');
+          if (savedSidebar !== null) {
+            this.sidebarOpen = savedSidebar === 'true';
+          }
+          
+          // Watch pour sauvegarder automatiquement
+          this.$watch('sidebarOpen', value => {
+            localStorage.setItem('sidebarOpen', value);
+          });
+          
+          this.darkMode = localStorage.getItem('theme') === 'dark';
+          this.updateTheme();
+        },
+
+        openEditModal(user) {
+          this.editingUser = user;
+          this.editUserOpen = true;
+        },
+        
+        updateTheme() {
+          if (this.darkMode) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+          }
+        }
+      }
+    }
+  </script>
+
+</body>
+</html>
